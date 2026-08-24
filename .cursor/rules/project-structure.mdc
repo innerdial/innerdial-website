@@ -1,0 +1,37 @@
+---
+description: Innerdial website layout, imports, and routing conventions
+alwaysApply: true
+---
+
+# Project Structure
+
+Svelte 5 + Vite corporate website with an `/admin` console.
+
+## Layout
+
+- `src/pages/site/` — public marketing screens (`/` and future site routes)
+- `src/pages/admin/` — admin console screens under `/admin`
+- `src/lib/components/` — shared UI components
+- `src/lib/<domain>/` — domain logic (e.g. `auth/`)
+- `src/lib/utils/` — small shared helpers (`config.js`)
+- `src/lib/stores/` — Svelte stores when needed
+- `DESIGN.md` + `src/app.css` — design tokens (source of UI values)
+
+Register new routes in `src/App.svelte` with `svelte-routing`.
+Keep `/` for the corporate site. Nest every admin screen under `/admin`.
+Schema lives in the sibling `innerdial` app (`supabase/migrations/`), not this repo.
+
+## Imports
+
+- Prefer `$lib/...` over deep relative paths into `src/lib`
+- Import concrete modules: `$lib/utils/config.js`, not a utils barrel
+- Do not add `index.js` files that only re-export other modules
+- A feature `index.js` is OK when it owns the public API and contains real logic
+
+```js
+// ❌ BAD — re-export-only barrel
+export { appConfig } from './config.js';
+
+// ✅ GOOD
+import { appConfig } from '$lib/utils/config.js';
+```

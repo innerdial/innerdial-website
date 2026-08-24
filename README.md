@@ -14,3 +14,4 @@ Svelte 5 + Vite corporate site (`/`) and admin console (`/admin`). Shares the In
 Copy `.env.example` to `.env.local` and fill in public `VITE_*` values. Never commit secrets.
 
 See `AGENTS.md` and `DESIGN.md` for layout, conventions, and UI tokens.
+# innerdial-website

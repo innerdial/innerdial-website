@@ -1,0 +1,36 @@
+---
+description: High code-quality standards for Innerdial website
+alwaysApply: true
+---
+
+# Code Quality
+
+Aim for production-grade clarity, safety, and maintainability on every change.
+
+## Principles
+
+- Prefer small, focused modules and functions with one clear job
+- Clarity over cleverness; delete dead code; avoid speculative abstractions
+- Fail loudly: no empty `catch`, no swallowed errors, no silent fallbacks that hide bugs
+- Name things by intent; avoid abbreviations unless project-local and obvious
+- Keep diffs tight — only change what the task needs
+
+## JavaScript / Svelte
+
+- ESM + named exports; public helpers get brief JSDoc when types or contracts are non-obvious
+- Validate inputs at boundaries (API, forms); trust less at the edge
+- Avoid magic numbers/strings — use named constants or CSS/design tokens
+- Do not leave `console.log` debugging in committed code
+- Ask before adding dependencies; prefer the platform and existing libs
+
+## Security
+
+- Never commit secrets, service-role keys, or real `.env` values
+- Client code may use `VITE_*` public values only
+- Treat user input as untrusted
+
+## Before finishing
+
+- Match existing patterns in nearby files
+- Ensure the change is readable without prior chat context
+- Prefer verifying with `npm run build` when the change touches app entry, config, or shared lib

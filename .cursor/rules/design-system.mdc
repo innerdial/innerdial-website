@@ -1,0 +1,42 @@
+---
+description: InnerDial UI tokens and component styling from DESIGN.md
+globs: src/**/*.{svelte,css}
+alwaysApply: false
+---
+
+# Design System
+
+Follow `DESIGN.md`. Use CSS variables from `src/app.css` — do not hardcode hex values when a token exists.
+
+## Tokens
+
+| Role | CSS variable | Value |
+|------|--------------|-------|
+| Primary / CTA | `--color-primary` | #B8935A |
+| Primary hover | `--color-primary-hover` | #A68451 |
+| Page background | `--color-background` | #FFFFFF |
+| Surface / cards | `--color-surface` | #DFE3E8 |
+| Text | `--color-text` | #0A0A0A |
+| Muted text | `--color-text-muted` | #6B6B66 |
+| Border | `--color-border` | #E8E6E1 |
+
+Spacing (8px base): `--space-xs|sm|md|lg|xl` (4 / 8 / 16 / 24 / 32).  
+Radius: `--radius-sm|md|lg` (4 / 8 / 16). Buttons, inputs, cards use `--radius-md`.
+
+## Rules
+
+- Primary (`#B8935A`) for key interactive emphasis only
+- Page backgrounds stay `--color-background`; contained regions use `--color-surface`
+- Do not invent new accent colors or use supporting blues/blacks as CTAs
+- Prefer gentle elevation; keep radius and spacing consistent
+- Colocate component styles in the `.svelte` `<style>` block
+
+```css
+/* ✅ GOOD */
+button.primary {
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+}
+```

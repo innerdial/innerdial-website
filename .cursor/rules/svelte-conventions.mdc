@@ -1,0 +1,30 @@
+---
+description: Svelte 5 and JS conventions for Innerdial website
+globs: src/**/*.{svelte,js}
+alwaysApply: false
+---
+
+# Svelte & JS Conventions
+
+- Svelte 5: use runes (`$props`, `$state`, `$derived`, `$effect`) — not legacy `export let` / stores for new local state
+- Keep pages thin: UI and page-local state in `src/pages/`; reusable logic in `src/lib/`
+- One screen per file under `src/pages/<feature>/PascalCase.svelte`
+- Public site screens: `src/pages/site/`; admin screens: `src/pages/admin/`
+- Shared components: `src/lib/components/PascalCase.svelte`
+- Plain JS modules (ESM). Prefer named exports
+- Env: only `import.meta.env.VITE_*` (see `.env.example`)
+- Desktop-first layouts for the corporate site and admin console
+
+```svelte
+<script>
+  let { title = '' } = $props();
+  let open = $state(false);
+</script>
+```
+
+```js
+// ✅ Domain helper
+export async function loadAdminSession() { /* ... */ }
+
+// ❌ Page-specific UI logic dumped into utils without reuse
+```
