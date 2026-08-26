@@ -21,6 +21,7 @@
     { href: '/admin/users', label: 'Users', exact: false, icon: 'users' },
     { href: '/admin/news', label: 'News', exact: false, icon: 'news' },
     { href: '/admin/tips', label: 'Watchmaker tips', exact: false, icon: 'tips' },
+    { href: '/admin/licenses', label: 'Licenses', exact: false, icon: 'licenses' },
   ];
 
   let signingOut = $state(false);
@@ -75,6 +76,10 @@
       <rect x="3.5" y="5" width="17" height="14" rx="2" />
       <path d="M7 9.5h5.5M7 13h5.5M7 16h3.5" />
       <path d="M16 9.5h1.5v4H16z" />
+    {:else if name === 'licenses'}
+      <rect x="4" y="3.5" width="16" height="17" rx="2" />
+      <path d="M8 8h8M8 12h8M8 16h5" />
+      <path d="M7 3.5V2.5M17 3.5V2.5" />
     {:else}
       <path d="M9 18h6M10 21h4" />
       <path

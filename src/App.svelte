@@ -16,6 +16,7 @@
     users: () => import('./pages/admin/Users.svelte'),
     news: () => import('./pages/admin/News.svelte'),
     tips: () => import('./pages/admin/Tips.svelte'),
+    licenses: () => import('./pages/admin/Licenses.svelte'),
   };
 </script>
 
@@ -29,4 +30,5 @@
   <Route path="/admin/users"><LazyPage load={admin.users} guarded /></Route>
   <Route path="/admin/news"><LazyPage load={admin.news} guarded /></Route>
   <Route path="/admin/tips"><LazyPage load={admin.tips} guarded /></Route>
+  <Route path="/admin/licenses"><LazyPage load={admin.licenses} guarded /></Route>
 </Router>
