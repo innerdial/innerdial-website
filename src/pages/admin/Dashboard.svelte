@@ -1,10 +1,11 @@
 <script>
   /**
-   * The console's front page: how many collectors there are, how many are still
-   * turning up, and what they are keeping in the vault.
+   * The console's front page: who is turning up, what is in the vault, and
+   * which product surfaces are actually in use.
    *
-   * Every figure is an aggregate computed in Postgres — the screen never holds
-   * another collector's rows in order to count them.
+   * The size of the collector base stays off this screen — that headcount is
+   * not an operational figure, and the Users list is where the roster lives.
+   * Every figure here is still an aggregate computed in Postgres.
    */
   import AdminShell from '$lib/components/AdminShell.svelte';
   import Button from '$lib/components/Button.svelte';
@@ -194,12 +195,6 @@
     cutout: '62%',
     plugins: { legend: { display: true, position: 'bottom' } },
   };
-
-  /** The share of collectors seen in the last week, which is the retention read. */
-  const activeShare = $derived.by(() => {
-    if (!stats?.total_users) return '';
-    return `${Math.round((stats.active_7d / stats.total_users) * 100)}% of all collectors`;
-  });
 </script>
 
 <AdminShell title="Dashboard" subtitle="Everything the collector app is doing, in aggregate.">
@@ -228,24 +223,24 @@
     <div class="stats">
       <StatCard
         accent
-        label="Total users"
-        value={formatCount(stats.total_users)}
-        note="{formatCount(stats.new_users_7d)} joined in the last 7 days"
+        label="New this week"
+        value={formatCount(stats.new_users_7d)}
+        note="{formatCount(stats.new_users_30d)} joined in the last 30 days"
       />
       <StatCard
         label="Active this week"
         value={formatCount(stats.active_7d)}
-        note={activeShare}
-      />
-      <StatCard
-        label="Active today"
-        value={formatCount(stats.active_1d)}
-        note="{formatCount(stats.active_30d)} in the last 30 days"
+        note="{formatCount(stats.active_1d)} today · {formatCount(stats.active_30d)} in 30 days"
       />
       <StatCard
         label="Watches in vaults"
         value={formatCount(stats.watches_owned)}
         note="{formatCount(stats.watches_sold)} recorded as sold"
+      />
+      <StatCard
+        label="Travel boxes"
+        value={formatCount(stats.travel_boxes)}
+        note="Trips collectors are packing for"
       />
       <StatCard
         label="Declared value"
