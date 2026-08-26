@@ -9,6 +9,13 @@
   /* Deep navy from DESIGN.md, promoted to a semantic token: dark CTAs, nav bar, display figures. */
   --color-ink: #0e1b2c;
   --color-ink-hover: #0a1420;
+  /*
+    Not an accent, and never used as one. The admin console deletes records the
+    collector app only ever creates, and a destructive confirm has to read as
+    destructive — DESIGN.md has no colour for that, so it is named here once.
+  */
+  --color-danger: #9b2c2c;
+  --color-danger-hover: #822525;
 
   --radius-sm: 4px;
   --radius-md: 8px;
