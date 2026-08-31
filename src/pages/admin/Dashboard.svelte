@@ -22,7 +22,7 @@
     fetchTierBreakdown,
   } from '$lib/admin/stats.js';
   import { tierLabel } from '$lib/admin/users.js';
-  import { formatCount, formatCurrency, formatDay } from '$lib/utils/format.js';
+  import { formatCount, formatDay } from '$lib/utils/format.js';
 
   const RANGES = [
     { days: 7, label: '7 days' },
@@ -74,6 +74,21 @@
   });
 
   const labels = $derived(series.map((point) => formatDay(point.day)));
+
+  /**
+   * Collectors who have catalogued at least one piece still owned. Derived from
+   * the size chart so the figure is available even before the overview RPC
+   * grows the matching column.
+   */
+  const vaultsInUse = $derived(
+    distribution
+      .filter((row) => row.bucket !== 'Empty')
+      .reduce((sum, row) => sum + Number(row.users), 0),
+  );
+
+  const emptyVaults = $derived(
+    Number(distribution.find((row) => row.bucket === 'Empty')?.users ?? 0),
+  );
 
   /**
    * Signups and active collectors share one chart because the question is how
@@ -235,23 +250,39 @@
       <StatCard
         label="Watches in vaults"
         value={formatCount(stats.watches_owned)}
-        note="{formatCount(stats.watches_sold)} recorded as sold"
+        note={stats.watches_added_7d != null
+          ? `${formatCount(stats.watches_added_7d)} added this week · ${formatCount(stats.watches_sold)} recorded as sold`
+          : `${formatCount(stats.watches_sold)} recorded as sold`}
       />
       <StatCard
-        label="Travel boxes"
-        value={formatCount(stats.travel_boxes)}
-        note="Trips collectors are packing for"
-      />
-      <StatCard
-        label="Declared value"
-        value={formatCurrency(stats.collection_value)}
-        note="Across every piece still owned"
+        label="Vaults in use"
+        value={formatCount(vaultsInUse)}
+        note={emptyVaults > 0
+          ? `${formatCount(emptyVaults)} have not added a piece yet`
+          : 'Collectors with at least one piece still owned'}
       />
       <StatCard
         label="Wears logged"
         value={formatCount(stats.wears_7d)}
-        note="In the last 7 days"
+        note={stats.wearers_7d != null
+          ? `${formatCount(stats.wearers_7d)} collectors in the last 7 days`
+          : 'In the last 7 days'}
       />
+      {#if stats.trips_active != null}
+        <StatCard
+          label="Trips underway"
+          value={formatCount(stats.trips_active)}
+          note="{formatCount(stats.trips_upcoming)} upcoming · {formatCount(
+            stats.travel_boxes,
+          )} packed in total"
+        />
+      {:else}
+        <StatCard
+          label="Travel boxes"
+          value={formatCount(stats.travel_boxes)}
+          note="Trips collectors are packing for"
+        />
+      {/if}
       <StatCard
         label="Documents held"
         value={formatCount(stats.documents)}

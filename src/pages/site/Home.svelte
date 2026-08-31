@@ -1,128 +1,113 @@
 <script>
+  import '$lib/site/site.css';
+
+  import DiveDocuments from '$lib/site/DiveDocuments.svelte';
+  import DivePrivacy from '$lib/site/DivePrivacy.svelte';
+  import DiveTools from '$lib/site/DiveTools.svelte';
+  import Features from '$lib/site/Features.svelte';
+  import FinalCta from '$lib/site/FinalCta.svelte';
+  import Hero from '$lib/site/Hero.svelte';
+  import Introduction from '$lib/site/Introduction.svelte';
+  import Membership from '$lib/site/Membership.svelte';
+  import Showcase from '$lib/site/Showcase.svelte';
+  import SiteFooter from '$lib/site/SiteFooter.svelte';
+  import SiteNav from '$lib/site/SiteNav.svelte';
+  import WhyInnerdial from '$lib/site/WhyInnerdial.svelte';
   import { appConfig } from '$lib/utils/config.js';
+
+  /**
+   * The public landing page.
+   *
+   * The order is an argument, not a list of sections: what it is (hero), why
+   * that matters (introduction), what is in it (features), what using it looks
+   * like (showcase), what goes wrong without it (why), three things worth
+   * dwelling on (the dives), what it costs (membership), and the ask.
+   *
+   * Sections own their own motion. This file only composes them, so a section
+   * can be reordered or cut without unpicking a shared timeline.
+   */
+
+  const TITLE = `${appConfig.appName} — The record your watches never had`;
+  const DESCRIPTION =
+    'A private vault for watch collectors. Serials, papers, provenance, service history and every day on the wrist — one record, kept properly.';
 </script>
 
 <svelte:head>
-  <title>{appConfig.appName}</title>
+  <title>{TITLE}</title>
+  <meta name="description" content={DESCRIPTION} />
+  <meta name="theme-color" content="#0e1b2c" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content={TITLE} />
+  <meta property="og:description" content={DESCRIPTION} />
+  <meta name="twitter:card" content="summary_large_image" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+  <!--
+    600 and 700 are what the app loads, plus the italics the site's accent
+    words are set in. Nothing else — every extra weight is a separate file on
+    the critical path.
+  -->
   <link
-    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&display=swap"
     rel="stylesheet"
   />
 </svelte:head>
 
-<main class="page">
-  <header class="nav">
-    <img src="/images/innerdial_logo.svg" alt="" width="40" height="40" />
-    <span class="brand">{appConfig.appName}</span>
-  </header>
+<div class="site">
+  <a class="skip" href="#main">Skip to content</a>
 
-  <section class="hero" aria-labelledby="hero-heading">
-    <p class="eyebrow">For the serious collector</p>
-    <h1 id="hero-heading">The record your watches never had.</h1>
-    <p class="lede">
-      Serials, papers, provenance — every piece, accounted for. Privately.
-    </p>
-  </section>
+  <SiteNav />
 
-  <section class="features" aria-label="What Innerdial holds">
-    <article class="card">
-      <h2>Every dial marks a moment</h2>
-      <p>The gift, the milestone, the heirloom — remembered, packed, and tracked wherever you travel.</p>
-    </article>
-    <article class="card">
-      <h2>Built for the serious</h2>
-      <p>Insurance-ready reports, service tracking, a watchmaker’s care guide — open to every collector.</p>
-    </article>
-    <article class="card">
-      <h2>Yours, privately</h2>
-      <p>A vault for the collection. Not a feed. Not a marketplace.</p>
-    </article>
-  </section>
-</main>
+  <main id="main">
+    <Hero />
+    <Introduction />
+    <Features />
+    <Showcase />
+    <WhyInnerdial />
+    <DiveDocuments />
+    <DiveTools />
+    <DivePrivacy />
+    <Membership />
+    <FinalCta />
+  </main>
+
+  <SiteFooter />
+</div>
 
 <style>
-  .page {
-    --font-serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
-    min-height: 100dvh;
-    background: var(--color-background);
-    color: var(--color-text);
+  /*
+    The nav is fixed, so an anchor jump would otherwise land the target's
+    heading underneath it. Applied to the sections rather than the root because
+    the hero is the one target that should sit flush against the top.
+  */
+  .site :global(section[id]) {
+    scroll-margin-top: 5rem;
   }
 
-  .nav {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    padding: var(--space-lg) var(--space-xl);
-    border-bottom: 1px solid var(--color-border);
+  .site :global(#top) {
+    scroll-margin-top: 0;
   }
 
-  .nav img {
-    display: block;
+  .skip {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    z-index: 100;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+    background: var(--color-ink);
+    color: #fff;
+    font-size: 0.875rem;
+    text-decoration: none;
+    transform: translate(-50%, -110%);
+    transition: transform 200ms var(--ease-out);
   }
 
-  .brand {
-    font-family: var(--font-serif);
-    font-size: 1.375rem;
-    font-weight: 600;
-    color: var(--color-ink);
-  }
-
-  .hero {
-    max-width: 40rem;
-    padding: var(--space-xl) var(--space-xl) var(--space-lg);
-  }
-
-  .eyebrow {
-    margin: 0 0 var(--space-sm);
-    font-size: 0.8125rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--color-primary);
-  }
-
-  h1 {
-    margin: 0 0 var(--space-md);
-    font-family: var(--font-serif);
-    font-size: clamp(2rem, 5vw, 3rem);
-    font-weight: 600;
-    line-height: 1.15;
-    color: var(--color-ink);
-  }
-
-  .lede {
-    margin: 0;
-    font-size: 1.125rem;
-    line-height: 1.5;
-    color: var(--color-text-muted);
-  }
-
-  .features {
-    display: grid;
-    gap: var(--space-md);
-    padding: var(--space-lg) var(--space-xl) var(--space-xl);
-    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-  }
-
-  .card {
-    padding: var(--space-lg);
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-  }
-
-  .card h2 {
-    margin: 0 0 var(--space-sm);
-    font-size: 1.0625rem;
-    font-weight: 600;
-    color: var(--color-text);
-  }
-
-  .card p {
-    margin: 0;
-    font-size: 0.9375rem;
-    line-height: 1.5;
-    color: var(--color-text-muted);
+  .skip:focus-visible {
+    transform: translate(-50%, 0);
+    outline: 3px solid rgb(184 147 90 / 45%);
+    outline-offset: -3px;
   }
 </style>

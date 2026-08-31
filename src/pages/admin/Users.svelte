@@ -1,22 +1,24 @@
 <script>
   /**
-   * Every collector with an account, and the one thing the console may change
-   * about them: their membership tier.
-   *
-   * Deliberately not a window into anyone's vault. The tier is a commercial
-   * decision an operator has to be able to make; the watches are the collector's.
+   * Every collector with an account: membership, a block that stops sign-in,
+   * and a delete that removes the Auth user. None of this is a window into
+   * anyone's vault. The watches stay the collector's until the account itself
+   * is deleted.
    */
   import AdminShell from '$lib/components/AdminShell.svelte';
   import Button from '$lib/components/Button.svelte';
   import Callout from '$lib/components/Callout.svelte';
   import Loader from '$lib/components/Loader.svelte';
   import Panel from '$lib/components/Panel.svelte';
+  import { currentUser } from '$lib/auth/session.svelte.js';
   import { errorMessage } from '$lib/supabase/client.js';
   import {
     MEMBERSHIP_TIERS,
     PAGE_SIZE,
     SORT_OPTIONS,
+    deleteUser,
     fetchUsers,
+    setUserBlocked,
     tierLabel,
     updateMembershipTier,
   } from '$lib/admin/users.js';
@@ -25,9 +27,12 @@
   /** Long enough that typing a name is not one request per keystroke. */
   const SEARCH_DEBOUNCE_MS = 300;
 
+  /** @typedef {'block' | 'unblock' | 'delete'} ConfirmAction */
+
   let searchInput = $state('');
   let search = $state('');
   let sort = $state('created_at');
+  let statusFilter = $state(/** @type {'all' | 'blocked'} */ ('all'));
   let page = $state(0);
 
   let status = $state(/** @type {'loading' | 'ready' | 'error'} */ ('loading'));
@@ -38,8 +43,11 @@
   let users = $state([]);
   let total = $state(0);
 
-  /** The row whose tier is mid-save, so only its own select is disabled. */
+  /** The row whose write is in flight, so only its own controls are disabled. */
   let savingId = $state('');
+
+  /** @type {{ id: string, action: ConfirmAction } | null} */
+  let confirming = $state(null);
 
   const pageCount = $derived(Math.max(1, Math.ceil(total / PAGE_SIZE)));
   const rangeStart = $derived(total === 0 ? 0 : page * PAGE_SIZE + 1);
@@ -59,12 +67,13 @@
   });
 
   $effect(() => {
-    load({ search, sort, page });
+    load({ search, sort, page, blockedOnly: statusFilter === 'blocked' });
   });
 
   async function load(options) {
     status = 'loading';
     error = '';
+    confirming = null;
 
     try {
       const result = await fetchUsers(options);
@@ -104,11 +113,85 @@
       savingId = '';
     }
   }
+
+  /**
+   * @param {import('$lib/admin/users.js').AdminUser} user
+   * @param {ConfirmAction} action
+   */
+  function askConfirm(user, action) {
+    confirming = { id: user.id, action };
+    notice = '';
+    error = '';
+  }
+
+  /** @param {import('$lib/admin/users.js').AdminUser} user */
+  function collectorLabel(user) {
+    return user.full_name || user.email || 'Collector';
+  }
+
+  /** @param {import('$lib/admin/users.js').AdminUser} user */
+  async function toggleBlocked(user) {
+    const blocked = !user.blocked_at;
+    savingId = user.id;
+    notice = '';
+    error = '';
+
+    try {
+      const updated = await setUserBlocked(user.id, blocked);
+      confirming = null;
+
+      if (statusFilter === 'blocked' && !updated.blocked_at) {
+        users = users.filter((row) => row.id !== user.id);
+        total = Math.max(0, total - 1);
+      } else {
+        users = users.map((row) =>
+          row.id === user.id ? { ...row, blocked_at: updated.blocked_at } : row,
+        );
+      }
+
+      notice = blocked
+        ? `${collectorLabel(user)} is blocked and can no longer sign in.`
+        : `${collectorLabel(user)} can sign in again.`;
+    } catch (cause) {
+      error = errorMessage(cause);
+    } finally {
+      savingId = '';
+    }
+  }
+
+  /** @param {import('$lib/admin/users.js').AdminUser} user */
+  async function remove(user) {
+    savingId = user.id;
+    notice = '';
+    error = '';
+
+    try {
+      await deleteUser(user.id);
+      users = users.filter((row) => row.id !== user.id);
+      total = Math.max(0, total - 1);
+      confirming = null;
+      notice = `${collectorLabel(user)} and their vault have been deleted.`;
+
+      if (users.length === 0 && page > 0) {
+        page -= 1;
+      }
+    } catch (cause) {
+      error = errorMessage(cause);
+    } finally {
+      savingId = '';
+    }
+  }
 </script>
 
-<AdminShell title="Users" subtitle="Every collector holding an Innerdial account.">
+<AdminShell
+  title="Users"
+  subtitle="Every collector holding an Innerdial account. Block stops sign-in; delete removes the account."
+>
   {#snippet actions()}
-    <Button onclick={() => load({ search, sort, page })} disabled={status === 'loading'}>
+    <Button
+      onclick={() => load({ search, sort, page, blockedOnly: statusFilter === 'blocked' })}
+      disabled={status === 'loading'}
+    >
       Refresh
     </Button>
   {/snippet}
@@ -143,6 +226,20 @@
           {/each}
         </select>
       </div>
+
+      <div class="sort">
+        <label for="user-status">Status</label>
+        <select
+          id="user-status"
+          bind:value={statusFilter}
+          onchange={() => {
+            page = 0;
+          }}
+        >
+          <option value="all">All collectors</option>
+          <option value="blocked">Blocked only</option>
+        </select>
+      </div>
     </div>
 
     {#if notice}
@@ -158,7 +255,9 @@
       <Callout
         message={search
           ? `No collector matches “${search}”.`
-          : 'No collectors have signed up yet.'}
+          : statusFilter === 'blocked'
+            ? 'No collectors are blocked.'
+            : 'No collectors have signed up yet.'}
       />
     {:else}
       <div class="table-scroll" class:stale={status === 'loading'}>
@@ -169,16 +268,20 @@
               <th scope="col">Joined</th>
               <th scope="col">Last seen</th>
               <th scope="col">Membership</th>
+              <th scope="col"><span class="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody>
             {#each users as user (user.id)}
-              <tr>
+              {@const busy = savingId === user.id}
+              {@const pending = confirming?.id === user.id ? confirming.action : ''}
+              <tr class:is-blocked={user.blocked_at}>
                 <td>
                   <div class="who">
                     <span class="name">
                       {user.full_name || 'Unnamed collector'}
                       {#if user.is_admin}<span class="badge">Admin</span>{/if}
+                      {#if user.blocked_at}<span class="badge blocked">Blocked</span>{/if}
                     </span>
                     <span class="email">{user.email ?? 'No email on file'}</span>
                   </div>
@@ -194,7 +297,7 @@
                   <select
                     id="tier-{user.id}"
                     value={user.membership_tier}
-                    disabled={savingId === user.id}
+                    disabled={busy}
                     onchange={(event) => changeTier(user, event.currentTarget.value)}
                   >
                     {#each MEMBERSHIP_TIERS as tier (tier.slug)}
@@ -204,6 +307,54 @@
                       <option value={user.membership_tier}>{user.membership_tier}</option>
                     {/if}
                   </select>
+                </td>
+                <td>
+                  {#if user.is_admin || user.id === currentUser()?.id}
+                    <span class="no-actions">—</span>
+                  {:else if pending}
+                    <div class="row-actions">
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        disabled={busy}
+                        onclick={() =>
+                          pending === 'delete' ? remove(user) : toggleBlocked(user)}
+                      >
+                        {pending === 'delete'
+                          ? 'Delete permanently'
+                          : pending === 'unblock'
+                            ? 'Confirm unblock'
+                            : 'Confirm block'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={busy}
+                        onclick={() => (confirming = null)}
+                      >
+                        Keep
+                      </Button>
+                    </div>
+                  {:else}
+                    <div class="row-actions">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={busy}
+                        onclick={() => askConfirm(user, user.blocked_at ? 'unblock' : 'block')}
+                      >
+                        {user.blocked_at ? 'Unblock' : 'Block'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={busy}
+                        onclick={() => askConfirm(user, 'delete')}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  {/if}
                 </td>
               </tr>
             {/each}
@@ -317,6 +468,11 @@
     white-space: nowrap;
   }
 
+  th:last-child,
+  td:last-child {
+    text-align: right;
+  }
+
   td {
     padding: var(--space-sm) var(--space-md);
     border-bottom: 1px solid var(--color-border);
@@ -361,6 +517,29 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: color-mix(in srgb, var(--color-primary) 82%, var(--color-ink));
+  }
+
+  .badge.blocked {
+    background: color-mix(in srgb, var(--color-danger) 12%, var(--color-background));
+    color: var(--color-danger);
+  }
+
+  tbody tr.is-blocked {
+    background: color-mix(in srgb, var(--color-danger) 4%, transparent);
+  }
+
+  .row-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-xs);
+    white-space: nowrap;
+  }
+
+  .no-actions {
+    display: block;
+    text-align: right;
+    color: var(--color-text-muted);
   }
 
   .numeric {

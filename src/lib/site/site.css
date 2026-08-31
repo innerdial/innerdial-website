@@ -1,0 +1,381 @@
+/*
+  Public site foundations.
+
+  Everything here hangs off `.site`, so it is scoped in practice even though the
+  file is global: the admin console never renders inside that class and cannot
+  pick any of it up. Two things live here rather than in a component:
+
+    - the derived scale. Custom properties inherit, so declaring the brass and
+      ink ramps once on `.site` puts them inside every section's scoped styles
+      without each one restating the palette.
+    - the reveal and parallax primitives, which `motion.js` drives by attribute
+      across every section. Duplicating them per component would be the same
+      rule written a dozen times.
+
+  The ramps are tints and shades of `--color-primary` and `--color-ink`, not new
+  accents — DESIGN.md's rule is that the site does not introduce a second
+  accent colour, and it does not.
+*/
+
+.site {
+  --font-display: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+
+  /* Brass — the app's #b8935a, opened out into a usable range. */
+  --brass-50: #faf6ef;
+  --brass-100: #f3e9d9;
+  --brass-200: #e6d3b4;
+  --brass-300: #d4b98c;
+  --brass-400: var(--color-primary);
+  --brass-500: var(--color-primary-hover);
+  --brass-600: #8d6f43;
+
+  /* Ink — the app's #0e1b2c, lifted for layering on dark sections. */
+  --ink-900: #070f19;
+  --ink-800: var(--color-ink);
+  --ink-700: #16283d;
+  --ink-600: #1f3550;
+  --ink-500: #2b445f;
+
+  /* Paper — the light ground, warmed a shade off pure white for large fields. */
+  --paper: var(--color-background);
+  --paper-warm: #fbfaf8;
+  --paper-tint: #f5f3ef;
+
+  --site-max: 78rem;
+  --gutter: clamp(1.25rem, 4.5vw, 4rem);
+  --section-y: clamp(4.5rem, 11vw, 9rem);
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-page: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur-reveal: 820ms;
+
+  /* Elevation, as DESIGN.md asks: gentle and diffused, never a hard drop. */
+  --shadow-sm: 0 1px 2px rgb(14 27 44 / 6%), 0 2px 8px rgb(14 27 44 / 4%);
+  --shadow-md: 0 2px 6px rgb(14 27 44 / 6%), 0 12px 32px rgb(14 27 44 / 8%);
+  --shadow-lg: 0 4px 12px rgb(14 27 44 / 8%), 0 32px 72px rgb(14 27 44 / 14%);
+  --shadow-device: 0 2px 8px rgb(14 27 44 / 10%), 0 24px 60px rgb(14 27 44 / 18%),
+    0 60px 120px rgb(14 27 44 / 12%);
+
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--color-text);
+  background: var(--paper);
+  /* Sticky sections need the page itself to be the scroller. */
+  overflow-x: clip;
+}
+
+/*
+  Anchor jumps glide rather than cut. Declared on the root because the scroll
+  container is the document, not `.site`.
+*/
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* --------------------------------------------------------------- typography */
+
+.site h1,
+.site h2,
+.site h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  /* Optical sizing: display serif at these sizes wants its tracking pulled in. */
+  letter-spacing: -0.015em;
+  color: var(--color-ink);
+  text-wrap: balance;
+}
+
+.site p {
+  text-wrap: pretty;
+}
+
+/* The shared measure for running copy — roughly 62 characters. */
+.site .lede {
+  max-width: 34rem;
+  font-size: clamp(1.0625rem, 1.6vw, 1.1875rem);
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
+.site .eyebrow {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+/* A word set in the display serif's italic, used to carry the accent. */
+.site .accent {
+  font-style: italic;
+  color: var(--color-primary);
+}
+
+.site .shell {
+  width: 100%;
+  max-width: var(--site-max);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+/* Sections that invert. Ink grounds carry their own text colours so a nested
+   component does not have to know which side it landed on. */
+.site .on-ink {
+  color: rgb(255 255 255 / 72%);
+  background: var(--ink-800);
+}
+
+.site .on-ink h1,
+.site .on-ink h2,
+.site .on-ink h3 {
+  color: #fff;
+}
+
+.site .on-ink .lede {
+  color: rgb(255 255 255 / 66%);
+}
+
+.site .on-ink .eyebrow {
+  color: var(--brass-300);
+}
+
+.site .on-ink .accent {
+  color: var(--brass-300);
+}
+
+/* ------------------------------------------------------------------ reveals */
+
+/*
+  The finished state is the default, and `[data-reveal]` is what pulls an
+  element away from it. Written the other way round, anything that failed to be
+  observed — a JS error, an unsupported browser — would stay invisible forever.
+*/
+.site [data-reveal] {
+  --reveal-i: 0;
+
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .site [data-reveal]:not([data-revealed]) {
+    opacity: 0;
+  }
+
+  .site [data-reveal] {
+    transition:
+      opacity var(--dur-reveal) var(--ease-out),
+      transform var(--dur-reveal) var(--ease-out),
+      filter var(--dur-reveal) var(--ease-out),
+      clip-path var(--dur-reveal) var(--ease-out);
+    transition-delay: calc(var(--reveal-i) * 85ms);
+    /* Promote only while there is something to animate. */
+    will-change: opacity, transform;
+  }
+
+  .site [data-reveal][data-revealed] {
+    will-change: auto;
+  }
+
+  .site [data-reveal='up']:not([data-revealed]) {
+    transform: translate3d(0, 2rem, 0);
+  }
+
+  .site [data-reveal='left']:not([data-revealed]) {
+    transform: translate3d(-2.5rem, 0, 0);
+  }
+
+  .site [data-reveal='right']:not([data-revealed]) {
+    transform: translate3d(2.5rem, 0, 0);
+  }
+
+  .site [data-reveal='scale']:not([data-revealed]) {
+    transform: scale(0.94);
+  }
+
+  .site [data-reveal='blur']:not([data-revealed]) {
+    transform: translate3d(0, 1.25rem, 0);
+    filter: blur(12px);
+  }
+
+}
+
+/*
+  Text that wipes up from behind its own baseline.
+
+  The reveal goes on `.reveal-line` — the element doing the clipping — and the
+  child inside it is what travels. It cannot be the other way round: an
+  IntersectionObserver intersects against the *clipped* box, so a child parked
+  outside its parent's `overflow: hidden` has a ratio of zero, never intersects,
+  and the line would stay hidden for the life of the page.
+*/
+.site .reveal-line {
+  display: block;
+  overflow: hidden;
+  /* Descenders in the display serif clip against a tight line box. */
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+
+.site [data-reveal='clip'] > * {
+  display: block;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .site [data-reveal='clip'] > * {
+    transform: translate3d(0, calc(100% * (1 - var(--revealed, 1))), 0);
+    transition: transform var(--dur-reveal) var(--ease-page);
+    transition-delay: calc(var(--reveal-i) * 85ms);
+  }
+}
+
+/* The line box a clip reveal rises inside. */
+/*
+  Reveal state as a number, for anything a component drives off its ancestor's.
+
+  A component's scoped CSS cannot select on `[data-revealed]` across a
+  descendant: Svelte prunes selectors whose attributes it cannot find in the
+  markup, and this one is only ever set at runtime by the action — so such a
+  rule is dropped from the build without failing it. Custom properties inherit
+  and are never pruned, so a child reads its ancestor's reveal state instead of
+  selecting on it.
+
+  It flips rather than interpolates, which is what is wanted: the properties
+  that consume it — opacity, transform — do the easing themselves.
+*/
+.site [data-reveal] {
+  --revealed: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .site [data-reveal]:not([data-revealed]) {
+    --revealed: 0;
+  }
+}
+
+/* ----------------------------------------------------------------- parallax */
+
+/*
+  Scroll-driven CSS, so the compositor owns it and no scroll handler runs. Where
+  the timeline is unsupported the element simply sits still — the layout never
+  depended on the offset.
+*/
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .site [data-parallax] {
+      animation: site-parallax linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 100%;
+      will-change: transform;
+    }
+  }
+}
+
+@keyframes site-parallax {
+  from {
+    transform: translate3d(0, var(--parallax-from, 3rem), 0);
+  }
+  to {
+    transform: translate3d(0, var(--parallax-to, -3rem), 0);
+  }
+}
+
+/* ----------------------------------------------------------------- controls */
+
+.site .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3.25rem;
+  padding: 0 var(--space-lg);
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s var(--ease-out),
+    box-shadow 0.24s var(--ease-out);
+}
+
+.site .btn:active {
+  transform: translateY(1px);
+}
+
+.site .btn:focus-visible {
+  outline: 3px solid rgb(184 147 90 / 45%);
+  outline-offset: 3px;
+}
+
+.site .btn-primary {
+  background: var(--color-ink);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+.site .btn-primary:hover {
+  background: var(--color-ink-hover);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.site .btn-primary:active {
+  transform: translateY(0);
+}
+
+/* On ink the dark button has nothing to sit against, so brass takes the lead. */
+.site .on-ink .btn-primary {
+  background: var(--color-primary);
+  color: var(--ink-900);
+}
+
+.site .on-ink .btn-primary:hover {
+  background: var(--brass-300);
+}
+
+.site .btn-secondary {
+  border-color: var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+}
+
+.site .btn-secondary:hover {
+  border-color: var(--color-primary);
+  background: rgb(184 147 90 / 6%);
+  color: var(--color-ink);
+}
+
+.site .on-ink .btn-secondary {
+  border-color: rgb(255 255 255 / 22%);
+  color: #fff;
+}
+
+.site .on-ink .btn-secondary:hover {
+  border-color: var(--brass-300);
+  background: rgb(255 255 255 / 8%);
+}
+
+/* -------------------------------------------------------------- accessibility */
+
+.site .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

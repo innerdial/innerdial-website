@@ -17,11 +17,14 @@ import { getSupabase } from '$lib/supabase/client.js';
  *   never_seen: number,
  *   watches_owned: number,
  *   watches_sold: number,
- *   collection_value: number,
+ *   watches_added_7d?: number,
  *   documents: number,
  *   service_records: number,
  *   travel_boxes: number,
+ *   trips_active?: number,
+ *   trips_upcoming?: number,
  *   wears_7d: number,
+ *   wearers_7d?: number,
  *   published_articles: number,
  *   draft_articles: number,
  *   published_tips: number,
@@ -34,7 +37,11 @@ import { getSupabase } from '$lib/supabase/client.js';
 export async function fetchOverviewStats() {
   const { data, error } = await getSupabase().rpc('admin_overview_stats');
   if (error) throw error;
-  return data;
+
+  // Declared collection value is private; drop it so the dashboard never holds it.
+  const stats = { ...data };
+  delete stats.collection_value;
+  return stats;
 }
 
 /**

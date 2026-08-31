@@ -494,6 +494,7 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     background: var(--color-background);
+    margin-top: var(--space-md);
   }
 
   .license-card.system {

@@ -19,7 +19,7 @@ Copy `.env.example` to `.env.local` and fill in public `VITE_*` values — the s
 |-------|--------|
 | `/admin/login` | Sign in |
 | `/admin` | Dashboard — users, activity, vault totals, charts |
-| `/admin/users` | Every collector; search, sort, change membership tier |
+| `/admin/users` | Every collector; search, sort, change membership, block or delete |
 | `/admin/news` | The feed behind the app's News screen |
 | `/admin/tips` | The watchmaker tips on the app's dashboard |
 
@@ -37,9 +37,10 @@ persuaded to render.
 
 ### Setting it up
 
-1. Apply `innerdial/supabase/migrations/20260826120000_admin_console.sql` to the
-   Supabase project. This repo does not own the schema — migrations live in the
-   sibling `innerdial` repo.
+1. Apply the admin migrations in `innerdial/supabase/migrations/` to the
+   Supabase project, including `20260826120000_admin_console.sql` and
+   `20260827120000_admin_user_moderation.sql` (block and delete). This repo
+   does not own the schema — migrations live in the sibling `innerdial` repo.
 2. Sign up through the collector app with the address you want to administer.
 3. Grant it, once, in the Supabase SQL editor:
 

@@ -56,6 +56,14 @@ export function errorMessage(error) {
     return 'That email and password do not match an account.';
   }
 
+  if (/user is banned/i.test(message)) {
+    return 'This account has been blocked.';
+  }
+
+  if (/blocked_at|admin_delete_user/i.test(message) && /does not exist|schema cache/i.test(message)) {
+    return 'Block and delete need the admin_user_moderation migration applied to this Supabase project.';
+  }
+
   if (/email not confirmed/i.test(message)) {
     return 'That account has not confirmed its email address yet.';
   }
