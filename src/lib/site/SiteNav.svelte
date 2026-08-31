@@ -1,5 +1,6 @@
 <script>
   import { appConfig } from '$lib/utils/config.js';
+  import { pageProgress } from '$lib/site/motion.js';
 
   /**
    * The site header.
@@ -72,6 +73,10 @@
       </button>
     </div>
   </div>
+
+  <!-- How far through the page the reader is. Sits on the bar's lower edge, so
+       it doubles as the rule that separates the bar from the page. -->
+  <span class="progress" use:pageProgress aria-hidden="true"></span>
 </header>
 
 <style>
@@ -83,6 +88,13 @@
   }
 
   .nav {
+    /*
+      The bar's height, in one place. The wrapped layout needs it on the first
+      flex line as well as on the container, and a second copy of the number is
+      how the two drift apart.
+    */
+    --bar-h: 4.75rem;
+
     position: fixed;
     top: 0;
     right: 0;
@@ -107,12 +119,12 @@
     display: flex;
     align-items: center;
     gap: var(--space-lg);
-    min-height: 4.75rem;
+    min-height: var(--bar-h);
     transition: min-height 420ms var(--ease-out);
   }
 
-  .nav.condensed .inner {
-    min-height: 4rem;
+  .nav.condensed {
+    --bar-h: 4rem;
   }
 
   .brand {
@@ -211,6 +223,34 @@
     flex: 0 0 auto;
     align-items: center;
     gap: var(--space-sm);
+    /*
+      Holds the actions against the right edge. Below the breakpoint the links
+      wrap to their own row, which leaves the brand and the burger alone on the
+      first one — without this they sit shoulder to shoulder on the left and
+      the burger reads as part of the wordmark.
+    */
+    margin-left: auto;
+  }
+
+  /* --------------------------------------------------------------- progress */
+
+  .progress {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background: linear-gradient(to right, var(--color-primary), var(--brass-200));
+    /* `--progress` is written by the action on every rAF-coalesced scroll. */
+    transform: scaleX(var(--progress, 0));
+    transform-origin: left;
+    opacity: 0;
+    transition: opacity 420ms var(--ease-out);
+  }
+
+  /* Hidden over the hero, where there is no progress worth reporting yet. */
+  .nav.condensed .progress {
+    opacity: 1;
   }
 
   /* The bar's own CTA is smaller than the page's — it is a way back to the
@@ -236,9 +276,18 @@
     background: var(--color-ink-hover);
   }
 
+  /*
+    The button is 44px so the tap target meets the minimum, but the glyph it
+    draws is only 8px tall. Without centring, the two bars stack at flex-start
+    and the visible icon sits in the top 8px of the box — so the button reads
+    as 18px too high next to the wordmark even though its own box is centred.
+    Centre the content, not just the control.
+  */
   .burger {
     display: none;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
     gap: 5px;
     width: 2.75rem;
     height: 2.75rem;
@@ -252,7 +301,6 @@
     display: block;
     width: 1.25rem;
     height: 1.5px;
-    margin-inline: auto;
     border-radius: 2px;
     background: #fff;
     transition:
@@ -288,8 +336,38 @@
       display: flex;
     }
 
+    /*
+      Two things have to be undone once the bar wraps onto two lines.
+
+      The row gap applies between the flex lines even when the second one is
+      collapsed to zero height, so a closed menu still added 24px to the bar —
+      all of it below the logo, which left the brand and the burger pinned to
+      the top of a bar 24px taller than its contents. Only the column gap is
+      wanted here; `margin-left: auto` on `.actions` does the horizontal work
+      anyway.
+
+      And the lines have to be centred as a group. `align-content` defaults to
+      `stretch` for a multi-line flex container, which hands the bar's spare
+      height to both lines equally — so the first line grows downward and its
+      contents come to rest above the bar's true centre.
+    */
     .inner {
       flex-wrap: wrap;
+      row-gap: 0;
+      align-content: center;
+    }
+
+    /*
+      The first line carries the bar's height itself, rather than inheriting it
+      from the container. Once the menu opens, the container grows to fit the
+      links and its `min-height` stops applying — so without this the top line
+      collapsed to the burger's own 44px and the logo jumped 16px up the moment
+      the menu was opened.
+    */
+    .brand,
+    .actions {
+      min-height: var(--bar-h);
+      transition: min-height 420ms var(--ease-out);
     }
 
     .links {

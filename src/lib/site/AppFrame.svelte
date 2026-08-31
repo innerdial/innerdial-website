@@ -42,6 +42,18 @@
     /* iPhone-ish. The screens are laid out against this ratio, so changing it
        reflows every mockup. */
     aspect-ratio: 393 / 830;
+    /*
+      The chassis measures itself against the frame, not the root font size.
+      Written in `rem` the bezel, the corner radius and the speaker pill stayed
+      the same absolute size at every scale — so at the 127px width the mobile
+      showcase uses, the pill covered two thirds of the screen's width and sat
+      on top of the app's own heading. In container units the whole device
+      scales as one object.
+
+      `.screen` declares its own container below, so the screens inside keep
+      resolving against the glass rather than against this.
+    */
+    container-type: inline-size;
     transform: perspective(1800px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
     transform-style: preserve-3d;
     transition: transform 400ms var(--ease-out);
@@ -69,8 +81,8 @@
     z-index: 1;
     width: 100%;
     height: 100%;
-    padding: 0.55rem;
-    border-radius: 2.75rem;
+    padding: 2.2cqw;
+    border-radius: 10.5cqw;
     /* Two stops, not a flat fill: a bezel that does not turn with the light
        reads as a rectangle rather than a device. */
     background: linear-gradient(150deg, #2c3a4c 0%, var(--ink-800) 34%, var(--ink-900) 100%);
@@ -84,7 +96,7 @@
     overflow: hidden;
     width: 100%;
     height: 100%;
-    border-radius: 2.25rem;
+    border-radius: 8.5cqw;
     /*
       The screens inside size themselves in container units against this box,
       so one set of mockups reads correctly whether the frame is 240px wide in a
@@ -103,11 +115,11 @@
 
   .pill-speaker {
     position: absolute;
-    top: 1.15rem;
+    top: 3.6cqw;
     left: 50%;
     z-index: 3;
-    width: 5.5rem;
-    height: 1.15rem;
+    width: 28cqw;
+    height: 4.6cqw;
     border-radius: 9999px;
     background: var(--ink-900);
     transform: translateX(-50%);
@@ -117,7 +129,7 @@
     position: absolute;
     inset: 0;
     z-index: 2;
-    border-radius: 2.75rem;
+    border-radius: 10.5cqw;
     background: linear-gradient(
       108deg,
       rgb(255 255 255 / 16%) 0%,

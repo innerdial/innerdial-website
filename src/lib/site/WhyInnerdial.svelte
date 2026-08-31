@@ -1,4 +1,5 @@
 <script>
+  import Backdrop from '$lib/site/Backdrop.svelte';
   import DialMotif from '$lib/site/DialMotif.svelte';
   import { countUp, reveal } from '$lib/site/motion.js';
 
@@ -48,6 +49,8 @@
 </script>
 
 <section class="why on-ink" id="why" aria-labelledby="why-heading">
+  <Backdrop tone="ink" glow="none" fade="radial" cell={72} />
+
   <span class="motif" aria-hidden="true"><DialMotif opacity={0.1} /></span>
 
   <div class="shell inner">

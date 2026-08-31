@@ -1,5 +1,6 @@
 <script>
   import { PLAN_BILLING, PLAN_FEATURES, PLAN_PRICE } from '$lib/site/plan.js';
+  import Backdrop from '$lib/site/Backdrop.svelte';
   import { reveal } from '$lib/site/motion.js';
 
   /**
@@ -23,6 +24,8 @@
 </script>
 
 <section class="membership" id="membership" aria-labelledby="membership-heading">
+  <Backdrop tone="light" glow="right" fade="radial" cell={64} />
+
   <div class="shell inner">
     <div class="copy">
       <p class="eyebrow" use:reveal={{ variant: 'fade' }}>Founding membership</p>
@@ -55,7 +58,7 @@
     </div>
 
     <div class="plan-column">
-      <article class="plan" use:reveal={{ variant: 'scale', index: 2 }}>
+      <article class="plan sweep-border" use:reveal={{ variant: 'scale', index: 2 }}>
         <span class="plan-glow" aria-hidden="true"></span>
 
         <header class="plan-head">
@@ -104,6 +107,8 @@
   }
 
   .inner {
+    position: relative;
+    z-index: 1;
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
     align-items: center;
@@ -187,9 +192,10 @@
     overflow: hidden;
     width: min(100%, 27rem);
     padding: clamp(1.5rem, 3vw, 2.25rem);
-    border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
-    background: var(--paper);
+    /* Border and fill both come from `.sweep-border` in site.css — it paints
+       them as one pair and setting either here would break the other. */
+    --sweep-fill: var(--paper);
     box-shadow: var(--shadow-lg);
     isolation: isolate;
   }

@@ -379,3 +379,237 @@
   white-space: nowrap;
   border: 0;
 }
+
+/* -------------------------------------------------------------- word reveal */
+
+/*
+  Copy that arrives a word at a time. `splitWords` in motion.js wraps each word
+  and numbers it; the stagger is small on purpose — anything over ~30ms a word
+  turns a sentence into a ticker and the reader starts waiting for it.
+*/
+.site .word {
+  display: inline-block;
+  opacity: var(--revealed, 1);
+  transform: translate3d(0, calc(0.45em * (1 - var(--revealed, 1))), 0);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .site .word {
+    transition:
+      opacity 620ms var(--ease-out),
+      transform 720ms var(--ease-page);
+    transition-delay: calc(var(--word-i) * 26ms + var(--reveal-i, 0) * 85ms);
+  }
+}
+
+/* ------------------------------------------------------------------ shimmer */
+
+/*
+  A specular sweep across the primary button — the highlight travelling over a
+  polished case. It runs on hover only, so an idle page has nothing animating,
+  and it is drawn on a pseudo-element clipped by the button's own radius.
+*/
+.site .btn-primary {
+  position: relative;
+  overflow: hidden;
+}
+
+.site .btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgb(255 255 255 / 28%) 48%,
+    transparent 66%
+  );
+  translate: -120% 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .site .btn-primary:hover::after {
+    animation: btn-sheen 900ms var(--ease-out);
+  }
+}
+
+@keyframes btn-sheen {
+  to {
+    translate: 120% 0;
+  }
+}
+
+/*
+  The sweep deliberately passes over the label as well as the ground. Lifting
+  the label above it would make the highlight stop at the text, which is not how
+  light crosses a polished surface — and it would only do so on the buttons
+  whose labels happen to be wrapped in an element.
+*/
+
+/* ------------------------------------------------------------ section seams */
+
+/*
+  The hairline that separates one section from the next, drawn from the centre
+  out as the seam arrives rather than simply being there. Brass in the middle,
+  fading to nothing at both ends, so it reads as a rule scored into the page.
+*/
+.site .seam {
+  position: relative;
+  height: 1px;
+  border: 0;
+  margin: 0;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgb(184 147 90 / 40%) 50%,
+    transparent 100%
+  );
+  transform: scaleX(var(--revealed, 1));
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .site .seam {
+    transition: transform 1100ms var(--ease-page);
+  }
+}
+
+/* ---------------------------------------------------------------- lift card */
+
+/*
+  The shared hover for anything card-shaped. `translate` and not `transform`,
+  because the reveal owns `transform` and the two must compose rather than
+  replace one another.
+*/
+.site .lift {
+  transition:
+    translate 460ms var(--ease-out),
+    box-shadow 460ms var(--ease-out),
+    border-color 460ms var(--ease-out),
+    background 460ms var(--ease-out);
+}
+
+.site .lift:hover {
+  translate: 0 -4px;
+}
+
+/* ------------------------------------------------------------ mobile rhythm */
+
+/*
+  Phones get a tighter vertical rhythm and a smaller display scale. Without
+  this the page is mostly the same layout with desktop air in it, which is what
+  makes a responsive site feel merely shrunk rather than designed for the
+  screen it is on.
+*/
+@media (max-width: 40rem) {
+  .site {
+    --section-y: clamp(3.25rem, 11vw, 4.5rem);
+    --gutter: 1.25rem;
+  }
+
+  .site .lede {
+    font-size: 1rem;
+    line-height: 1.55;
+  }
+
+  .site .btn {
+    min-height: 3rem;
+    font-size: 0.9375rem;
+  }
+}
+
+/* ------------------------------------------------------------ card surfaces */
+
+/*
+  Cards sit on the engraved ground rather than hiding it. A little translucency
+  lets the lattice ghost through, which is what stops a white card on a white
+  page from reading as a floating rectangle with nothing behind it. No
+  `backdrop-filter` here on purpose — a dozen blurred layers is a real cost on a
+  mid-range phone, and at this opacity the blur adds nothing the eye can find.
+*/
+.site .pane {
+  position: relative;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: rgb(255 255 255 / 82%);
+}
+
+.site .on-ink .pane {
+  border-color: rgb(255 255 255 / 10%);
+  background: rgb(255 255 255 / 4%);
+}
+
+/*
+  A brass hairline along the card's top edge that draws out from the left on
+  hover. Cheaper than an animated gradient border and it reads as an underline
+  being scored, which suits a page about records.
+*/
+.site .pane::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  right: 0;
+  left: 0;
+  height: 1px;
+  border-radius: inherit;
+  background: linear-gradient(to right, var(--color-primary), transparent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 560ms var(--ease-out);
+  pointer-events: none;
+}
+
+.site .pane:hover::before {
+  transform: scaleX(1);
+}
+
+/* --------------------------------------------------------- animated border */
+
+/*
+  The one place on the page that gets a moving border: the plan card. A conic
+  gradient painted into the border box only, with a flat fill over the padding
+  box, so all that shows is a brass highlight travelling around the edge.
+
+  Not a `z-index: -1` pseudo-element. Within a stacking context a negative
+  child paints *above* its parent's own background, so that version covered the
+  whole card in gold instead of outlining it.
+
+  `@property` is what makes the angle animatable — an unregistered custom
+  property is an opaque token to the engine and cannot be interpolated, so the
+  sweep would jump from 0 to 360 with nothing in between.
+*/
+@property --sweep {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.site .sweep-border {
+  /* The element must own both layers, so it also owns the border it draws
+     them into — a component setting its own `border` or `background` would
+     replace one half of the pair and break the effect. */
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--sweep-fill, #fff), var(--sweep-fill, #fff)) padding-box,
+    conic-gradient(
+        from var(--sweep),
+        var(--color-border) 0deg,
+        rgb(184 147 90 / 90%) 38deg,
+        var(--color-border) 104deg,
+        var(--color-border) 360deg
+      )
+      border-box;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .site .sweep-border {
+    animation: border-sweep 7s linear infinite;
+  }
+}
+
+@keyframes border-sweep {
+  to {
+    --sweep: 360deg;
+  }
+}

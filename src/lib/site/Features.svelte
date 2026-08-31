@@ -1,4 +1,5 @@
 <script>
+  import Backdrop from '$lib/site/Backdrop.svelte';
   import { reveal } from '$lib/site/motion.js';
 
   /**
@@ -75,7 +76,9 @@
 </script>
 
 <section class="features" id="features" aria-labelledby="features-heading">
-  <div class="shell">
+  <Backdrop tone="light" glow="corner" fade="top" cell={64} />
+
+  <div class="shell inner">
     <header class="head">
       <p class="eyebrow" use:reveal={{ variant: 'fade' }}>What it holds</p>
       <h2 id="features-heading" use:reveal={{ variant: 'up', index: 1 }}>
@@ -94,7 +97,7 @@
     <ul class="grid" onpointermove={onMove}>
       {#each FEATURES as feature, i (feature.id)}
         <li
-          class="card"
+          class="card pane"
           data-size={feature.size ?? 'default'}
           use:reveal={{ variant: 'up', index: i }}
         >
@@ -154,6 +157,11 @@
     border-top: 1px solid var(--color-border);
   }
 
+  .inner {
+    position: relative;
+    z-index: 1;
+  }
+
   .head {
     display: flex;
     flex-direction: column;
@@ -187,9 +195,7 @@
     grid-column: span 2;
     overflow: hidden;
     padding: clamp(1.25rem, 2vw, 1.75rem);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    background: var(--paper);
+    /* Border, radius and ground come from `.pane` in site.css. */
     isolation: isolate;
     transition:
       translate 460ms var(--ease-out),

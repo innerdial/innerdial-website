@@ -1,4 +1,5 @@
 <script>
+  import Backdrop from '$lib/site/Backdrop.svelte';
   import { reveal } from '$lib/site/motion.js';
 
   /**
@@ -44,6 +45,8 @@
 </script>
 
 <section class="intro" id="vault" aria-labelledby="intro-heading">
+  <Backdrop tone="light" glow="right" fade="radial" cell={64} />
+
   <div class="shell inner">
     <div class="copy">
       <p class="eyebrow" use:reveal={{ variant: 'fade' }}>The idea</p>
@@ -107,6 +110,8 @@
   }
 
   .inner {
+    position: relative;
+    z-index: 1;
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: center;
@@ -390,8 +395,13 @@
       grid-template-rows: auto auto;
     }
 
+    /*
+      `relative`, never `static`. The rings inside are absolutely positioned
+      against the hub; letting it fall out of the positioning flow re-anchored
+      them to `.field` and they blew up into a giant arc across the section.
+    */
     .hub {
-      position: static;
+      position: relative;
       justify-self: center;
       width: 6.5rem;
       height: 6.5rem;

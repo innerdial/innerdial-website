@@ -76,6 +76,7 @@ function ensureRevealObserver() {
  *   variant?: 'up' | 'fade' | 'blur' | 'scale' | 'left' | 'right' | 'clip',
  *   index?: number,
  *   repeat?: boolean,
+ *   immediate?: boolean,
  * }} RevealOptions
  */
 
@@ -111,6 +112,32 @@ export function reveal(node, options = {}) {
       update(next) {
         apply(next);
         settle();
+      },
+    };
+  }
+
+  /*
+    Above-the-fold content plays on mount instead of waiting to be observed.
+
+    An element that is already in view has nothing to wait for, and gating it
+    on the observer means the first screen is blank until the first
+    IntersectionObserver callback lands — which is not guaranteed to be the
+    first frame, and on a slow device is visibly late. The hero would rather
+    animate a beat early than be empty.
+
+    The timeout, not a rAF: the start state has to be painted before the flip
+    or there is nothing to transition from, and rAF is unreliable in a
+    backgrounded or throttled tab — exactly where this failure shows up.
+  */
+  if (options.immediate) {
+    const timer = setTimeout(settle, 60);
+    return {
+      /** @param {RevealOptions} next */
+      update(next) {
+        apply(next);
+      },
+      destroy() {
+        clearTimeout(timer);
       },
     };
   }
@@ -399,4 +426,175 @@ export function countUp(node, options) {
       observer.disconnect();
     },
   };
+}
+
+/* ---------------------------------------------------------------- magnetic */
+
+/**
+ * Pull an element toward the pointer as it approaches.
+ *
+ * The travel is capped at `strength` px and eased by distance, so the control
+ * leans rather than chases — a button that tracks the cursor one-to-one feels
+ * broken, not responsive. Writes `translate`, never `transform`, so a reveal
+ * or hover transform on the same element still composes.
+ *
+ * @param {HTMLElement} node
+ * @param {{ strength?: number, radius?: number }} [options]
+ */
+export function magnetic(node, options = {}) {
+  const strength = options.strength ?? 7;
+  const radius = options.radius ?? 90;
+
+  // No hover, no pointer to lean toward.
+  if (prefersReducedMotion() || !matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    return {};
+  }
+
+  let pending = 0;
+  let dx = 0;
+  let dy = 0;
+
+  function write() {
+    pending = 0;
+    node.style.translate = `${dx.toFixed(2)}px ${dy.toFixed(2)}px`;
+  }
+
+  /** @param {PointerEvent} event */
+  function onMove(event) {
+    const rect = node.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const ox = event.clientX - cx;
+    const oy = event.clientY - cy;
+    const distance = Math.hypot(ox, oy);
+
+    // Falls off to nothing at the edge of the radius.
+    const pull = Math.max(0, 1 - distance / (Math.max(rect.width, rect.height) / 2 + radius));
+    dx = (ox / (rect.width / 2 || 1)) * strength * pull;
+    dy = (oy / (rect.height / 2 || 1)) * strength * pull;
+
+    if (!pending) {
+      pending = requestAnimationFrame(write);
+    }
+  }
+
+  function onLeave() {
+    if (pending) {
+      cancelAnimationFrame(pending);
+      pending = 0;
+    }
+    node.style.translate = '';
+  }
+
+  // Listening on the window, not the node: the pull has to begin before the
+  // pointer arrives, and a pointerenter fires only once it already has.
+  addEventListener('pointermove', onMove, { passive: true });
+  node.addEventListener('pointerleave', onLeave);
+
+  return {
+    destroy() {
+      if (pending) {
+        cancelAnimationFrame(pending);
+      }
+      removeEventListener('pointermove', onMove);
+      node.removeEventListener('pointerleave', onLeave);
+      node.style.translate = '';
+    },
+  };
+}
+
+/* ----------------------------------------------------------- page progress */
+
+/**
+ * Report how far the document has been read, as 0 → 1.
+ *
+ * Shares the same rAF-coalesced pass as `scrollProgress` by registering a
+ * synthetic entry whose travel is the whole document, so the progress rail
+ * costs no scroll listener of its own.
+ *
+ * @param {HTMLElement} node
+ * @param {(progress: number) => void} [onProgress]
+ */
+export function pageProgress(node, onProgress) {
+  /** @type {Tracked} */
+  const entry = {
+    node,
+    onProgress: onProgress ?? (() => {}),
+    top: 0,
+    travel: 1,
+    last: -1,
+  };
+
+  // The rail measures the document, not itself — override what `measure` would
+  // have read off the node, and keep it current as the page grows.
+  const remeasureDoc = () => {
+    entry.top = 0;
+    entry.travel = Math.max(1, document.documentElement.scrollHeight - innerHeight);
+  };
+
+  tracked.add(entry);
+  remeasureDoc();
+  listen();
+  schedule();
+
+  const observer =
+    typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(() => {
+          remeasureDoc();
+          schedule();
+        });
+  observer?.observe(document.documentElement);
+
+  return {
+    destroy() {
+      observer?.disconnect();
+      tracked.delete(entry);
+      stopListening();
+    },
+  };
+}
+
+/* --------------------------------------------------------------- split text */
+
+/**
+ * Wrap each word of an element in a span so they can be staggered.
+ *
+ * Done in JS rather than in the markup because the copy should stay readable
+ * as a sentence in the source — and because a word split written by hand goes
+ * stale the moment someone edits the line. The element's text is replaced with
+ * the same words, so what a screen reader announces is unchanged, but the
+ * accessible name is pinned with `aria-label` in case a split confuses it.
+ *
+ * @param {HTMLElement} node
+ * @param {{ stagger?: number }} [options]
+ */
+export function splitWords(node, options = {}) {
+  const stagger = options.stagger ?? 26;
+  const text = node.textContent ?? '';
+
+  if (prefersReducedMotion()) {
+    return {};
+  }
+
+  node.setAttribute('aria-label', text.replace(/\s+/g, ' ').trim());
+  node.textContent = '';
+
+  const words = text.split(/(\s+)/);
+  let index = 0;
+
+  for (const word of words) {
+    if (!word.trim()) {
+      node.appendChild(document.createTextNode(word));
+      continue;
+    }
+    const outer = document.createElement('span');
+    outer.className = 'word';
+    outer.setAttribute('aria-hidden', 'true');
+    outer.style.setProperty('--word-i', String(index++));
+    outer.textContent = word;
+    node.appendChild(outer);
+  }
+
+  return {};
 }

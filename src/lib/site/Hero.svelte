@@ -1,9 +1,10 @@
 <script>
   import AppFrame from '$lib/site/AppFrame.svelte';
   import AppScreen from '$lib/site/AppScreen.svelte';
+  import Backdrop from '$lib/site/Backdrop.svelte';
   import DialMotif from '$lib/site/DialMotif.svelte';
   import { PLAN_BILLING, PLAN_PRICE } from '$lib/site/plan.js';
-  import { reveal, tilt } from '$lib/site/motion.js';
+  import { magnetic, reveal, splitWords, tilt } from '$lib/site/motion.js';
 
   /**
    * The opening statement.
@@ -21,59 +22,62 @@
   /** The three cards orbiting the device — each one a real app surface. */
   const ORBIT = [
     { id: 'service', side: 'left', label: 'Service due', value: 'Speedmaster · 21 days' },
-    { id: 'papers', side: 'right', label: 'Papers filed', value: 'Warranty · Invoice · Receipt' },
+    { id: 'papers', side: 'right', label: 'Papers filed', value: 'Warranty · Invoice' },
     { id: 'wears', side: 'left', label: 'Worn this year', value: '214 days logged' },
   ];
 </script>
 
 <section class="hero on-ink" id="top" aria-labelledby="hero-heading">
+  <Backdrop tone="ink" glow="right" fade="radial" cell={72} drift />
+
   <div class="ground" aria-hidden="true">
     <span class="motif"><DialMotif opacity={0.14} /></span>
-    <span class="bloom"></span>
     <span class="grain"></span>
   </div>
 
   <div class="inner shell">
     <div class="copy">
-      <p class="eyebrow" use:reveal={{ variant: 'fade', index: 0 }}>For the serious collector</p>
+      <p class="eyebrow" use:reveal={{ variant: 'fade', index: 0, immediate: true }}>For the serious collector</p>
 
       <!-- The reveal sits on the clipping line, not on the text inside it —
            see the clip note in site.css. -->
       <h1 id="hero-heading" class="headline">
-        <span class="reveal-line" use:reveal={{ variant: 'clip', index: 1 }}>
+        <span class="reveal-line" use:reveal={{ variant: 'clip', index: 1, immediate: true }}>
           <span>The <em class="accent">record</em></span>
         </span>
-        <span class="reveal-line" use:reveal={{ variant: 'clip', index: 2 }}>
+        <span class="reveal-line" use:reveal={{ variant: 'clip', index: 2, immediate: true }}>
           <span>your watches</span>
         </span>
-        <span class="reveal-line" use:reveal={{ variant: 'clip', index: 3 }}>
+        <span class="reveal-line" use:reveal={{ variant: 'clip', index: 3, immediate: true }}>
           <span>never had.</span>
         </span>
       </h1>
 
-      <p class="lede" use:reveal={{ variant: 'up', index: 5 }}>
+      <p class="lede" use:splitWords use:reveal={{ variant: 'fade', index: 5, immediate: true }}>
         Serials, papers, provenance, service history and every day on the wrist — one
         private vault for the collection you have spent a lifetime assembling.
       </p>
 
-      <div class="actions" use:reveal={{ variant: 'up', index: 6 }}>
-        <a class="btn btn-primary" href="#membership">Begin your collection</a>
+      <div class="actions" use:reveal={{ variant: 'up', index: 6, immediate: true }}>
+        <a class="btn btn-primary" href="#membership" use:magnetic>
+          <span>Begin your collection</span>
+        </a>
         <a class="btn btn-secondary" href="#vault">
-          See how it works
+          <span>See how it works</span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
             <path d="M12 5v14m0 0l-6-6m6 6l6-6" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </a>
       </div>
 
-      <ul class="trust" use:reveal={{ variant: 'fade', index: 7 }}>
+      <ul class="trust" use:reveal={{ variant: 'fade', index: 7, immediate: true }}>
         <li><strong>{PLAN_PRICE}</strong>{PLAN_BILLING}</li>
         <li>30-day full refund</li>
         <li>Export your data anytime</li>
       </ul>
     </div>
 
-    <div class="stage" use:reveal={{ variant: 'blur', index: 4 }}>
+    <div class="stage" use:reveal={{ variant: 'blur', index: 4, immediate: true }}>
       <div class="device" use:tilt={{ strength: 7 }} data-parallax>
         <AppFrame glow label="The Innerdial dashboard: greeting, watchmaker's note, wear log, timeline and a service reminder">
           <AppScreen screen="dashboard" />
@@ -122,23 +126,6 @@
     aspect-ratio: 1;
     color: var(--brass-300);
     transform: translate(-50%, -50%);
-  }
-
-  .bloom {
-    position: absolute;
-    top: -20%;
-    left: 46%;
-    width: 70rem;
-    height: 70rem;
-    border-radius: 50%;
-    background: radial-gradient(
-      circle,
-      rgb(184 147 90 / 20%) 0%,
-      rgb(184 147 90 / 7%) 38%,
-      transparent 66%
-    );
-    filter: blur(20px);
-    transform: translateX(-50%);
   }
 
   /*
@@ -392,6 +379,26 @@
 
   /* --------------------------------------------------------------- narrow */
 
+  /*
+    Between the desktop breakpoint and the width where the shell stops growing,
+    the stage is narrow and the gutter thin — a card pushed 16% outward lands
+    past the section's edge and is sliced off by its `overflow: hidden`. Pulled
+    in, they still cross the bezel without leaving the page.
+  */
+  @media (min-width: 62.0625rem) and (max-width: 80rem) {
+    .orbit[data-card='service'] {
+      left: -7%;
+    }
+
+    .orbit[data-card='papers'] {
+      right: -7%;
+    }
+
+    .orbit[data-card='wears'] {
+      left: -4%;
+    }
+  }
+
   @media (max-width: 62rem) {
     .inner {
       grid-template-columns: minmax(0, 1fr);
@@ -435,6 +442,68 @@
 
     .orbit[data-card='papers'] {
       right: -4%;
+    }
+  }
+
+  /*
+    Phones.
+
+    The hero's whole job on a small screen is to get the headline, the offer and
+    a glimpse of the product above the fold. Laid out with desktop air it ran to
+    1328px on an 812px screen and the device landed at y=713 — effectively
+    invisible, so the first screen was all words. Everything below tightens the
+    stack until the device breaks the fold by a couple of hundred pixels, which
+    both shows the product and gives the reader something to scroll toward.
+  */
+  @media (max-width: 48rem) {
+    .hero {
+      min-height: 0;
+      padding: 5.5rem 0 3rem;
+    }
+
+    .copy {
+      gap: var(--space-md);
+    }
+
+    .headline {
+      font-size: clamp(2.5rem, 12vw, 3.25rem);
+      line-height: 1.04;
+    }
+
+    .lede {
+      max-width: 26rem;
+    }
+
+    /* Full width and equal. Side by side they cannot hold their labels, and
+       shrink-wrapped they came out 203px and 197px — near-misses read as
+       sloppy in a way that a deliberate difference does not. */
+    .actions {
+      flex-direction: column;
+      width: min(100%, 20rem);
+      gap: 0.625rem;
+    }
+
+    .actions :global(.btn) {
+      width: 100%;
+    }
+
+    .stage {
+      width: min(100%, 15.5rem);
+      margin-top: var(--space-md);
+    }
+
+    /*
+      The separators are dropped rather than the items rewrapped: the rule is
+      drawn with `li + li::before`, so a wrapped line began with a dangling
+      hairline and no text before it.
+    */
+    .trust {
+      gap: 0.35rem var(--space-md);
+      font-size: 0.75rem;
+    }
+
+    .trust li + li::before {
+      display: none;
     }
   }
 

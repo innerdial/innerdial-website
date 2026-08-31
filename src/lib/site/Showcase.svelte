@@ -1,6 +1,7 @@
 <script>
   import AppFrame from '$lib/site/AppFrame.svelte';
   import AppScreen from '$lib/site/AppScreen.svelte';
+  import Backdrop from '$lib/site/Backdrop.svelte';
   import { reveal, scrollProgress } from '$lib/site/motion.js';
 
   /**
@@ -60,6 +61,8 @@
 <section class="showcase" id="showcase" aria-labelledby="showcase-heading">
   <div class="track" use:scrollProgress={(value) => (progress = value)}>
     <div class="stage">
+      <Backdrop tone="light" glow="center" fade="radial" cell={64} />
+
       <div class="shell inner">
         <div class="copy">
           <p class="eyebrow" use:reveal={{ variant: 'fade' }}>A walk through</p>
@@ -148,6 +151,8 @@
   }
 
   .inner {
+    position: relative;
+    z-index: 1;
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr);
     align-items: center;

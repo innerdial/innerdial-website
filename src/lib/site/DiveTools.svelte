@@ -1,4 +1,5 @@
 <script>
+  import Backdrop from '$lib/site/Backdrop.svelte';
   import { reveal } from '$lib/site/motion.js';
 
   /**
@@ -24,6 +25,8 @@
 </script>
 
 <section class="dive on-ink" id="tools" aria-labelledby="tools-heading">
+  <Backdrop tone="ink" glow="right" fade="radial" cell={72} drift />
+
   <div class="shell inner">
     <div class="copy">
       <p class="eyebrow" use:reveal={{ variant: 'fade' }}>Deep dive · Tools</p>
@@ -97,6 +100,8 @@
   }
 
   .inner {
+    position: relative;
+    z-index: 1;
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
     align-items: center;

@@ -67,15 +67,7 @@
   <div class="body">
     {#if screen === 'dashboard'}
       <header class="intro">
-        <h1 class="headline">Good evening, Arjun.</h1>
-        <p class="badge">
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path
-              d="M12 2.5l2.9 5.88 6.49.95-4.7 4.58 1.11 6.46L12 17.33l-5.8 3.05 1.1-6.46-4.69-4.58 6.49-.95L12 2.5z"
-            />
-          </svg>
-          Founding member
-        </p>
+        <h1 class="headline">Good evening, Karan.</h1>
       </header>
 
       <section class="card tip">
@@ -373,25 +365,6 @@
     font-size: calc(14 * var(--px));
     line-height: 1.4;
     color: var(--color-text-muted);
-  }
-
-  .badge {
-    display: inline-flex;
-    align-self: flex-start;
-    align-items: center;
-    gap: calc(6 * var(--px));
-    margin: 0;
-    padding: calc(5 * var(--px)) calc(11 * var(--px));
-    border: calc(1 * var(--px)) solid var(--color-primary);
-    border-radius: 9999px;
-    font-size: calc(11 * var(--px));
-    font-weight: 500;
-    color: var(--color-primary);
-  }
-
-  .badge svg {
-    width: calc(10 * var(--px));
-    height: calc(10 * var(--px));
   }
 
   /* ---------------------------------------------------------------- cards */

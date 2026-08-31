@@ -1,4 +1,5 @@
 <script>
+  import Backdrop from '$lib/site/Backdrop.svelte';
   import { reveal } from '$lib/site/motion.js';
 
   /**
@@ -25,6 +26,8 @@
 </script>
 
 <section class="dive" aria-labelledby="documents-heading">
+  <Backdrop tone="light" glow="left" fade="radial" cell={56} />
+
   <div class="shell inner">
     <div class="visual" aria-hidden="true">
       <div class="stack" data-parallax style="--parallax-from: 2.5rem; --parallax-to: -2.5rem">
@@ -79,6 +82,8 @@
   }
 
   .inner {
+    position: relative;
+    z-index: 1;
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: center;

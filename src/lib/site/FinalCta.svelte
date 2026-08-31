@@ -1,7 +1,8 @@
 <script>
+  import Backdrop from '$lib/site/Backdrop.svelte';
   import DialMotif from '$lib/site/DialMotif.svelte';
   import { PLAN_REFUND_NOTE } from '$lib/site/plan.js';
-  import { reveal } from '$lib/site/motion.js';
+  import { magnetic, reveal } from '$lib/site/motion.js';
 
   /**
    * The close.
@@ -13,6 +14,8 @@
 </script>
 
 <section class="cta on-ink" aria-labelledby="cta-heading">
+  <Backdrop tone="ink" glow="none" fade="radial" cell={72} drift />
+
   <span class="motif" aria-hidden="true"><DialMotif opacity={0.16} /></span>
   <span class="bloom" aria-hidden="true"></span>
 
@@ -37,8 +40,8 @@
     </p>
 
     <div class="actions" use:reveal={{ variant: 'up', index: 6 }}>
-      <a class="btn btn-primary" href="#membership">Begin your collection</a>
-      <a class="btn btn-secondary" href="#features">Look through it first</a>
+      <a class="btn btn-primary" href="#membership" use:magnetic><span>Begin your collection</span></a>
+      <a class="btn btn-secondary" href="#features"><span>Look through it first</span></a>
     </div>
 
     <p class="note" use:reveal={{ variant: 'fade', index: 7 }}>{PLAN_REFUND_NOTE}</p>

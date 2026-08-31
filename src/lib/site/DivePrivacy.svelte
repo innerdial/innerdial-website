@@ -1,4 +1,5 @@
 <script>
+  import Backdrop from '$lib/site/Backdrop.svelte';
   import { reveal } from '$lib/site/motion.js';
 
   /**
@@ -35,6 +36,8 @@
 </script>
 
 <section class="dive" id="privacy" aria-labelledby="privacy-heading">
+  <Backdrop tone="light" glow="right" fade="radial" cell={56} />
+
   <div class="shell inner">
     <div class="copy">
       <p class="eyebrow" use:reveal={{ variant: 'fade' }}>Deep dive · Privacy</p>
@@ -101,6 +104,8 @@
   }
 
   .inner {
+    position: relative;
+    z-index: 1;
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr);
     align-items: center;

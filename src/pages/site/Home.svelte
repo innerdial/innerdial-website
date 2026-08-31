@@ -8,6 +8,7 @@
   import FinalCta from '$lib/site/FinalCta.svelte';
   import Hero from '$lib/site/Hero.svelte';
   import Introduction from '$lib/site/Introduction.svelte';
+  import Marquee from '$lib/site/Marquee.svelte';
   import Membership from '$lib/site/Membership.svelte';
   import Showcase from '$lib/site/Showcase.svelte';
   import SiteFooter from '$lib/site/SiteFooter.svelte';
@@ -64,6 +65,7 @@
     <Hero />
     <Introduction />
     <Features />
+    <Marquee />
     <Showcase />
     <WhyInnerdial />
     <DiveDocuments />
