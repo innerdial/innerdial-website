@@ -95,10 +95,31 @@
     --bloom: rgb(184 147 90 / 16%);
   }
 
+  /*
+    Far weaker than the light tone, and not by eye — by Weber.
+
+    Matching the two by contrast ratio (both land near 1.10) is what made the
+    dark sections look gridded over. What the eye actually tracks is the step
+    relative to the ground it is adapted to: the same ~10/255 line is a 4%
+    change on paper and a 64% change on --ink-900. Equal on paper, fifteen
+    times louder in the room.
+
+    1.5% puts the step at roughly 3.5/255, which is quiet against ink while
+    still catching the light. Going further toward a true Weber match would
+    erase the figure altogether.
+  */
   .backdrop[data-tone='ink'] {
-    --line: rgb(255 255 255 / 4%);
-    --line-strong: rgb(184 147 90 / 9%);
+    --line: rgb(255 255 255 / 1.5%);
     --bloom: rgb(184 147 90 / 22%);
+  }
+
+  /*
+    No heavier fourth line on ink either. That accent is what turns a lattice
+    into a ruled scale, which is exactly the structure that shouts on a dark
+    ground — the plain hairlines carry the texture there on their own.
+  */
+  .backdrop[data-tone='ink'] .rule {
+    display: none;
   }
 
   /* ------------------------------------------------------------------ fade */

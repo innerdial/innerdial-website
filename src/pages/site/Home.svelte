@@ -4,6 +4,7 @@
   import DiveDocuments from '$lib/site/DiveDocuments.svelte';
   import DivePrivacy from '$lib/site/DivePrivacy.svelte';
   import DiveTools from '$lib/site/DiveTools.svelte';
+  import Faq from '$lib/site/Faq.svelte';
   import Features from '$lib/site/Features.svelte';
   import FinalCta from '$lib/site/FinalCta.svelte';
   import Hero from '$lib/site/Hero.svelte';
@@ -73,6 +74,7 @@
     <DivePrivacy />
     <Membership />
     <FinalCta />
+    <Faq />
   </main>
 
   <SiteFooter />

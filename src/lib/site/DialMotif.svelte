@@ -53,15 +53,30 @@
     {/each}
   </g>
 
-  <!-- The mark itself: the logo's two arcs, scaled to the figure's centre. -->
-  <g class="mark" stroke="currentColor" stroke-width="3.2">
-    <path
-      d="M236 306c-12-34-13-75 5-111l59 57c-6 14-17 49-15 71M236 306c27 76 117 127 235 74l-77-79c-18 12-67 24-108 22M236 306c11 11 29 16 49 17"
-    />
-    <path
-      d="M551 291c12 34 13 75-5 111l-59-57c6-14 17-49 15-71M551 291c-27-76-117-127-235-74l77 79c18-12 67-24 108-22M551 291c-11-11-29-16-49-17"
-      transform="translate(-93 8) scale(0.86) translate(50 42)"
-    />
+  <!--
+    The mark itself, verbatim from `public/images/innerdial_logo.svg`.
+
+    The path data is the logo's own and is not retyped or redrawn — an earlier
+    version approximated these two arcs by hand in the 600-unit viewBox and got
+    the curves wrong, which is what put a broken mark behind every dark section.
+    Placement is a transform instead: centre on the figure, scale up, then pull
+    the logo's own centre (38.4, 38.4 in its 77-unit box) back to the origin.
+
+    The white disc the logo carries is deliberately dropped. Here the mark is a
+    watermark drawn in line only, so a filled ground would black out the rings
+    behind it.
+  -->
+  <g transform="translate(300 300) scale(5.2) translate(-38.4 -38.4)">
+    <!-- Nested so the breathing scale below cannot replace the placement: a
+         CSS transform overrides the presentation attribute outright. -->
+    <g class="mark" stroke="currentColor" stroke-width="0.5" fill="none">
+      <path
+        d="M17.7884 39.3577C16.2419 34.9512 16.1584 29.6307 18.4269 24.9951L26.0868 32.3359C25.3421 34.2067 23.9164 38.6637 24.1718 41.5255M17.7884 39.3577C21.2463 49.2104 32.8924 55.7694 48.1095 48.9327L38.2153 38.7193C35.8572 40.2199 29.4675 41.8645 24.1718 41.5255M17.7884 39.3577C19.2555 40.72 21.5829 41.3598 24.1718 41.5255"
+      />
+      <path
+        d="M58.4802 37.4426C60.0266 41.849 60.1102 47.1695 57.8416 51.8052L50.1818 44.4643C50.9265 42.5935 52.3521 38.1365 52.0968 35.2747M58.4802 37.4426C55.0223 27.5898 43.3762 21.0308 28.159 27.8675L38.0532 38.0809C40.4113 36.5803 46.8011 34.9357 52.0968 35.2747M58.4802 37.4426C57.013 36.0802 54.6856 35.4405 52.0968 35.2747"
+      />
+    </g>
   </g>
 </svg>
 
@@ -75,10 +90,20 @@
     pointer-events: none;
   }
 
+  /* Both spin about the figure's centre, in the 600-unit viewBox. */
   .rings,
-  .track,
-  .mark {
+  .track {
     transform-origin: 300px 300px;
+  }
+
+  /*
+    The mark breathes about the logo's own centre instead. It sits inside the
+    placement transform, so its local coordinate system is the logo's 77-unit
+    box — 300,300 would be far outside it and the scale would throw the mark
+    off across the figure.
+  */
+  .mark {
+    transform-origin: 38.4px 38.4px;
   }
 
   @media (prefers-reduced-motion: no-preference) {
