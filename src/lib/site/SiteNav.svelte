@@ -1,6 +1,7 @@
 <script>
   import { appConfig } from '$lib/utils/config.js';
   import { pageProgress } from '$lib/site/motion.js';
+  import SoundToggle from '$lib/site/SoundToggle.svelte';
 
   /**
    * The site header.
@@ -60,6 +61,8 @@
     </nav>
 
     <div class="actions">
+      <SoundToggle />
+
       <a class="btn btn-primary compact" href="#membership">Begin your collection</a>
       <button
         class="burger"
@@ -219,6 +222,15 @@
   }
 
   .actions {
+    /*
+      The sound control draws itself in this colour. It is a custom property
+      rather than a :global rule because the bar's two states are this
+      component's business — the toggle only needs to be told the answer, and
+      custom properties inherit into its scoped styles without either file
+      reaching into the other.
+    */
+    --sound-fg: #fff;
+
     display: flex;
     flex: 0 0 auto;
     align-items: center;
@@ -265,6 +277,10 @@
 
   .actions :global(.btn.compact:hover) {
     background: var(--brass-300);
+  }
+
+  .nav.condensed .actions {
+    --sound-fg: var(--color-ink);
   }
 
   .nav.condensed .actions :global(.btn.compact) {
