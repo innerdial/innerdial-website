@@ -14,6 +14,7 @@ import { getSupabase } from '$lib/supabase/client.js';
  *   full_name: string | null,
  *   email: string | null,
  *   membership_tier: string,
+ *   license_id: string | null,
  *   created_at: string,
  *   last_seen_at: string | null,
  *   blocked_at: string | null,
@@ -21,7 +22,15 @@ import { getSupabase } from '$lib/supabase/client.js';
  * }} AdminUser
  */
 
-/** Mirrors TIER_LABELS in the app — the column stores a slug, both ends name it. */
+/*
+  A label, and only a label.
+
+  `profiles.membership_tier` decides nothing: the app gates on the licence, and
+  so does the RLS policy on `watches`. It is kept because the dashboard's tier
+  breakdown still counts it, and it is deliberately no longer writable from the
+  collector list — a control that looked like it granted a plan and in fact
+  granted nothing is what cost an afternoon of debugging a 403.
+*/
 export const MEMBERSHIP_TIERS = [
   { slug: 'founding', label: 'Founding Collector' },
   { slug: 'collector', label: 'Collector' },
@@ -55,9 +64,12 @@ export async function fetchUsers({ search = '', sort = 'created_at', page = 0, b
 
   let query = supabase
     .from('profiles')
-    .select('id, full_name, email, membership_tier, created_at, last_seen_at, blocked_at', {
-      count: 'exact',
-    })
+    .select(
+      'id, full_name, email, membership_tier, license_id, created_at, last_seen_at, blocked_at',
+      {
+        count: 'exact',
+      },
+    )
     .order(order.column, { ascending: order.ascending, nullsFirst: false })
     .range(from, from + PAGE_SIZE - 1);
 
@@ -97,24 +109,49 @@ async function fetchAdminIds() {
 }
 
 /**
- * Moves a collector to another membership tier.
+ * The licences a collector can be put on, in the order the console shows them.
  *
- * Only an admin can do this: a trigger rejects the same write from the account
- * holder, so a failure here means privileges, not a bad slug.
+ * Read from the table rather than hardcoded: a licence added here should appear
+ * in the console without a deploy, and a list written down in the client is a
+ * list that drifts from the one the database gates on.
+ *
+ * @returns {Promise<{ id: string, slug: string, name: string }[]>}
+ */
+export async function fetchLicenses() {
+  const { data, error } = await getSupabase()
+    .from('licenses')
+    .select('id, slug, name, is_system, sort_order')
+    .order('is_system', { ascending: false })
+    .order('sort_order', { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []).map(({ id, slug, name }) => ({ id, slug, name }));
+}
+
+/**
+ * Puts a collector on a licence, or takes them off one.
+ *
+ * This is the write that actually grants something. `effective_features` reads
+ * `profiles.license_id`, and both the app's membership gate and the RLS policy
+ * that decides whether a piece may be added read `effective_features` — so this
+ * one column is what opens the app and sets the size of the vault.
+ *
+ * Null is a real choice, not a failure to choose: it drops the collector onto
+ * whichever licence is marked `is_default`, which is where a free account
+ * belongs.
+ *
+ * Only an admin can do this. The profiles update policy is keyed on
+ * `is_admin()`, so a failure here means privileges, not a bad id.
  *
  * @param {string} userId
- * @param {string} tier
+ * @param {string | null} licenseId
  */
-export async function updateMembershipTier(userId, tier) {
-  if (!MEMBERSHIP_TIERS.some((option) => option.slug === tier)) {
-    throw new Error(`Unknown membership tier: ${tier}`);
-  }
-
+export async function updateUserLicense(userId, licenseId) {
   const { data, error } = await getSupabase()
     .from('profiles')
-    .update({ membership_tier: tier })
+    .update({ license_id: licenseId })
     .eq('id', userId)
-    .select('id, membership_tier')
+    .select('id, license_id')
     .single();
 
   if (error) throw error;

@@ -1,5 +1,7 @@
 <script>
-  import { appConfig } from '$lib/utils/config.js';
+  import { onMount } from 'svelte';
+
+  import { appConfig, AUTH_STORAGE_KEY } from '$lib/utils/config.js';
   import { pageProgress } from '$lib/site/motion.js';
   import SoundToggle from '$lib/site/SoundToggle.svelte';
 
@@ -22,6 +24,33 @@
 
   let condensed = $state(false);
   let menuOpen = $state(false);
+
+  /*
+    Whether to offer the account or the way in to it.
+
+    Read out of storage rather than from the session module, which is the
+    obvious way and the wrong one here: this bar ships in the marketing bundle,
+    and importing the session module would put supabase-js on the homepage's
+    critical path to decide between two words. A key that is present is a hint
+    and not proof — an expired token leaves one behind — so /account guards
+    itself and sends anyone stale to /login. The cost of being wrong is one
+    redirect.
+
+    In an effect rather than at module scope because the server-rendered and
+    first client render must agree, and storage is not readable in the first.
+  */
+  let signedIn = $state(false);
+
+  onMount(() => {
+    try {
+      signedIn = localStorage.getItem(AUTH_STORAGE_KEY) !== null;
+    } catch {
+      // Safari in private browsing throws on access. Offering "Sign in" to
+      // someone already signed in costs one redirect; claiming a session that
+      // is not there costs the same. Default to the one that promises less.
+      signedIn = false;
+    }
+  });
 
   /** @param {HTMLElement} node */
   function sentinel(node) {
@@ -62,6 +91,18 @@
 
     <div class="actions">
       <SoundToggle />
+
+      <!--
+        A plain anchor, not a routed Link: /login and /account are their own
+        bundle, so the navigation fetches a chunk either way and a full document
+        load is the simpler thing that cannot go stale.
+
+        Styled as the site's secondary button so the bar ends in a matched pair
+        rather than a loose word pressed against a pill.
+      -->
+      <a class="btn btn-secondary compact" href={signedIn ? '/account' : '/login'}>
+        {signedIn ? 'Account' : 'Sign in'}
+      </a>
 
       <a class="btn btn-primary compact" href="#membership">Begin your collection</a>
       <button
@@ -116,6 +157,26 @@
     background: rgb(255 255 255 / 82%);
     border-bottom-color: var(--color-border);
     backdrop-filter: blur(16px) saturate(160%);
+  }
+
+  /*
+    An open menu needs a ground.
+
+    Over the hero the bar is transparent on purpose — there is nothing to
+    separate it from, and the wordmark reads against the ink on its own. That
+    holds right up until the sheet drops, at which point four links are lying
+    directly on the hero's own headline with nothing in between. Condensed, the
+    frosted white above already solves this; this is the same rule for the top
+    of the page, drawn in the palette the top of the page is actually in.
+
+    Ink rather than white because everything in the bar is still in its on-ink
+    colours here: white links, a white outline on the secondary button, white
+    burger. Reaching for the frosted white would mean restating all four.
+  */
+  .nav.open:not(.condensed) {
+    background: rgb(7 15 25 / 94%);
+    border-bottom-color: rgb(255 255 255 / 14%);
+    backdrop-filter: blur(16px) saturate(140%);
   }
 
   .inner {
@@ -265,31 +326,76 @@
     opacity: 1;
   }
 
-  /* The bar's own CTA is smaller than the page's — it is a way back to the
-     offer, not the offer itself. */
+  /*
+    The bar ends in a pair: a way back to an existing membership and a way into
+    a new one. Both are the site's button at the same height, radius and type
+    size — smaller than the page's, because the bar is a reminder of the offer
+    and not the offer itself — so the only difference left for the eye to read
+    is which of them is filled.
+
+    `.compact` carries the measurements the two share. Everything below it is
+    colour, and colour is the one thing that has to change twice: once per
+    variant, and again when the bar leaves the hero's ink for frosted white.
+  */
   .actions :global(.btn.compact) {
     min-height: 2.75rem;
     padding: 0 1.15rem;
     font-size: 0.875rem;
+    /* In step with the bar's own condense, so nothing snaps mid-scroll. Short
+       enough that it still reads as a hover when that is what it is. */
+    transition:
+      background 260ms var(--ease-out),
+      border-color 260ms var(--ease-out),
+      color 260ms var(--ease-out);
+  }
+
+  .actions :global(.btn-primary.compact) {
     background: var(--color-primary);
     color: var(--ink-900);
   }
 
-  .actions :global(.btn.compact:hover) {
+  .actions :global(.btn-primary.compact:hover) {
     background: var(--brass-300);
+  }
+
+  /*
+    Over the hero the outline is the only thing drawing this button at all, so
+    it takes the hairline the page uses on ink elsewhere. `.btn-secondary`'s own
+    border is the paper one, which on navy is invisible.
+  */
+  .actions :global(.btn-secondary.compact) {
+    border-color: rgb(255 255 255 / 26%);
+    background: transparent;
+    color: #fff;
+  }
+
+  .actions :global(.btn-secondary.compact:hover) {
+    border-color: var(--brass-300);
+    background: rgb(255 255 255 / 8%);
+    color: #fff;
   }
 
   .nav.condensed .actions {
     --sound-fg: var(--color-ink);
   }
 
-  .nav.condensed .actions :global(.btn.compact) {
+  .nav.condensed .actions :global(.btn-primary.compact) {
     background: var(--color-ink);
     color: #fff;
   }
 
-  .nav.condensed .actions :global(.btn.compact:hover) {
+  .nav.condensed .actions :global(.btn-primary.compact:hover) {
     background: var(--color-ink-hover);
+  }
+
+  .nav.condensed .actions :global(.btn-secondary.compact) {
+    border-color: var(--color-border);
+    color: var(--color-ink);
+  }
+
+  .nav.condensed .actions :global(.btn-secondary.compact:hover) {
+    border-color: var(--color-primary);
+    background: rgb(184 147 90 / 8%);
   }
 
   /*
@@ -434,9 +540,20 @@
     }
   }
 
+  /*
+    The offer is repeated all the way down the page, so the bar can afford to
+    drop it here. The door to an existing membership appears once, so it stays —
+    tightened, because the wordmark, the sound control and the burger are all
+    still on this line.
+  */
   @media (max-width: 30rem) {
-    .actions :global(.btn.compact) {
+    .actions :global(.btn-primary.compact) {
       display: none;
+    }
+
+    .actions :global(.btn-secondary.compact) {
+      min-height: 2.5rem;
+      padding: 0 0.85rem;
     }
   }
 

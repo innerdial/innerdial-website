@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { appConfig } from '$lib/utils/config.js';
+import { appConfig, AUTH_STORAGE_KEY } from '$lib/utils/config.js';
 
 const { url, anonKey } = appConfig.supabase;
 
@@ -9,11 +9,18 @@ export const isSupabaseConfigured = Boolean(url && anonKey);
 let client = null;
 
 /**
- * The console reaches Supabase with the anon key and nothing else.
+ * This site reaches Supabase with the anon key and nothing else.
  *
- * This is a static site: a service-role key placed here would be served to
- * every visitor. Every admin capability is therefore a Postgres policy keyed on
- * `is_admin()`, and an operator's own JWT is what satisfies it.
+ * It is a static build: a service-role key placed here would be served to every
+ * visitor. Every admin capability is therefore a Postgres policy keyed on
+ * `is_admin()`, and an operator's own JWT is what satisfies it. Billing is the
+ * same argument taken one step further — the subscription tables have no client
+ * write policy at all, and the only writer is an edge function holding the
+ * Razorpay secret where a browser cannot read it.
+ *
+ * One client serves both surfaces. A collector signing in at /login and an
+ * operator signing in at /admin/login are the same Supabase account system;
+ * what separates them is `is_admin()`, not a second session.
  */
 export function getSupabase() {
   if (!isSupabaseConfigured) {
@@ -27,10 +34,11 @@ export function getSupabase() {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        // The console is reached by URL, never by an auth redirect carrying a
-        // token, so parsing one out of the address bar has nothing to find.
+        // Both surfaces are reached by URL, never by an auth redirect carrying
+        // a token, so parsing one out of the address bar has nothing to find.
+        // A password-reset link would change that and this with it.
         detectSessionInUrl: false,
-        storageKey: 'innerdial-admin-auth',
+        storageKey: AUTH_STORAGE_KEY,
       },
     });
   }
@@ -48,6 +56,13 @@ export function getSupabase() {
 export function errorMessage(error) {
   if (!error) {
     return 'Something failed without saying why.';
+  }
+
+  // A refusal this site raised itself is already written for the person about
+  // to read it. Running it past the Supabase phrasings below risks a false
+  // match turning a clear sentence into an unrelated one.
+  if (/** @type {any} */ (error)?.name === 'AccountInputError') {
+    return /** @type {any} */ (error).message;
   }
 
   const message = typeof error === 'string' ? error : (/** @type {any} */ (error).message ?? '');
@@ -71,6 +86,20 @@ export function errorMessage(error) {
   // Raised by the admin_* functions and by every RLS policy refusal.
   if (/admin privileges required/i.test(message) || /row-level security/i.test(message)) {
     return 'This account does not hold admin privileges.';
+  }
+
+  if (/new password should be different/i.test(message)) {
+    return 'That is already your password.';
+  }
+
+  if (/already registered|already been registered|email address is already/i.test(message)) {
+    return 'Another account already uses that email address.';
+  }
+
+  // Supabase rate-limits password and email changes per account, and phrases it
+  // as "For security purposes, you can only request this after N seconds".
+  if (/for security purposes|rate limit|too many requests/i.test(message)) {
+    return 'Too many attempts just now. Wait a minute and try again.';
   }
 
   if (/failed to fetch|networkerror/i.test(message)) {

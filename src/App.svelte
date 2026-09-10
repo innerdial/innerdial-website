@@ -6,9 +6,9 @@
   let { url = '' } = $props();
 
   /*
-    The public site is eager; the console is not. Everything under /admin brings
-    the Supabase client and Chart.js with it, and a visitor reading the homepage
-    should not pay for either.
+    The public site is eager; everything that needs Supabase is not. The console
+    brings the client and Chart.js with it, and the account area brings the
+    client — a visitor reading the homepage should pay for neither.
   */
   const admin = {
     login: () => import('./pages/admin/Login.svelte'),
@@ -18,17 +18,29 @@
     tips: () => import('./pages/admin/Tips.svelte'),
     licenses: () => import('./pages/admin/Licenses.svelte'),
   };
+
+  const account = {
+    login: () => import('./pages/site/Login.svelte'),
+    home: () => import('./pages/account/Account.svelte'),
+    membership: () => import('./pages/account/Membership.svelte'),
+  };
 </script>
 
 <Router {url}>
   <Route path="/"><Home /></Route>
 
   <!-- Outside the guard: it is the way back in when there is no session. -->
+  <Route path="/login"><LazyPage load={account.login} /></Route>
+
+  <Route path="/account"><LazyPage load={account.home} guard="session" /></Route>
+  <Route path="/account/membership"><LazyPage load={account.membership} guard="session" /></Route>
+
+  <!-- Same reasoning as /login, for the console's own door. -->
   <Route path="/admin/login"><LazyPage load={admin.login} /></Route>
 
-  <Route path="/admin"><LazyPage load={admin.dashboard} guarded /></Route>
-  <Route path="/admin/users"><LazyPage load={admin.users} guarded /></Route>
-  <Route path="/admin/news"><LazyPage load={admin.news} guarded /></Route>
-  <Route path="/admin/tips"><LazyPage load={admin.tips} guarded /></Route>
-  <Route path="/admin/licenses"><LazyPage load={admin.licenses} guarded /></Route>
+  <Route path="/admin"><LazyPage load={admin.dashboard} guard="admin" /></Route>
+  <Route path="/admin/users"><LazyPage load={admin.users} guard="admin" /></Route>
+  <Route path="/admin/news"><LazyPage load={admin.news} guard="admin" /></Route>
+  <Route path="/admin/tips"><LazyPage load={admin.tips} guard="admin" /></Route>
+  <Route path="/admin/licenses"><LazyPage load={admin.licenses} guard="admin" /></Route>
 </Router>

@@ -67,7 +67,7 @@
   <div class="body">
     {#if screen === 'dashboard'}
       <header class="intro">
-        <h1 class="headline">Good evening, Karan.</h1>
+        <h1 class="headline">Good evening, Patrick.</h1>
       </header>
 
       <section class="card tip">

@@ -13,14 +13,13 @@
   import { currentUser } from '$lib/auth/session.svelte.js';
   import { errorMessage } from '$lib/supabase/client.js';
   import {
-    MEMBERSHIP_TIERS,
     PAGE_SIZE,
     SORT_OPTIONS,
     deleteUser,
+    fetchLicenses,
     fetchUsers,
     setUserBlocked,
-    tierLabel,
-    updateMembershipTier,
+    updateUserLicense,
   } from '$lib/admin/users.js';
   import { formatCount, formatDate, formatRelative } from '$lib/utils/format.js';
 
@@ -34,6 +33,21 @@
   let sort = $state('created_at');
   let statusFilter = $state(/** @type {'all' | 'blocked'} */ ('all'));
   let page = $state(0);
+
+  /*
+    Loaded once. The list is three or four rows that change when a plan is
+    added, not per collector, so re-reading it for every page of the table would
+    be a request per keystroke of the search box.
+  */
+  let licenses = $state(/** @type {{ id: string, slug: string, name: string }[]} */ ([]));
+
+  /** @param {string | null} id */
+  function licenseName(id) {
+    if (!id) {
+      return 'Free';
+    }
+    return licenses.find((license) => license.id === id)?.name ?? 'Unknown licence';
+  }
 
   let status = $state(/** @type {'loading' | 'ready' | 'error'} */ ('loading'));
   let error = $state('');
@@ -70,6 +84,21 @@
     load({ search, sort, page, blockedOnly: statusFilter === 'blocked' });
   });
 
+  /*
+    Separate from the table's load, and not awaited by it: an unreadable licence
+    list should leave the collector list working. The select falls back to
+    showing the id it cannot name rather than an empty dropdown.
+  */
+  $effect(() => {
+    fetchLicenses()
+      .then((rows) => {
+        licenses = rows;
+      })
+      .catch((cause) => {
+        console.warn('[admin] could not read the licence list:', cause);
+      });
+  });
+
   async function load(options) {
     status = 'loading';
     error = '';
@@ -88,26 +117,25 @@
 
   /**
    * @param {import('$lib/admin/users.js').AdminUser} user
-   * @param {string} tier
+   * @param {string} value the licence id, or '' for none
    */
-  async function changeTier(user, tier) {
-    if (tier === user.membership_tier) return;
+  async function changeLicense(user, value) {
+    const licenseId = value || null;
+    if (licenseId === user.license_id) return;
 
-    const previous = user.membership_tier;
+    const previous = user.license_id;
     savingId = user.id;
     notice = '';
     error = '';
 
     // Moved before the request so the select does not snap back while it flies.
-    users = users.map((row) => (row.id === user.id ? { ...row, membership_tier: tier } : row));
+    users = users.map((row) => (row.id === user.id ? { ...row, license_id: licenseId } : row));
 
     try {
-      await updateMembershipTier(user.id, tier);
-      notice = `${user.full_name || user.email || 'Collector'} is now ${tierLabel(tier)}.`;
+      await updateUserLicense(user.id, licenseId);
+      notice = `${user.full_name || user.email || 'Collector'} is now on ${licenseName(licenseId)}.`;
     } catch (cause) {
-      users = users.map((row) =>
-        row.id === user.id ? { ...row, membership_tier: previous } : row,
-      );
+      users = users.map((row) => (row.id === user.id ? { ...row, license_id: previous } : row));
       error = errorMessage(cause);
     } finally {
       savingId = '';
@@ -267,7 +295,7 @@
               <th scope="col">Collector</th>
               <th scope="col">Joined</th>
               <th scope="col">Last seen</th>
-              <th scope="col">Membership</th>
+              <th scope="col">Licence</th>
               <th scope="col"><span class="sr-only">Actions</span></th>
             </tr>
           </thead>
@@ -291,21 +319,20 @@
                   {formatRelative(user.last_seen_at)}
                 </td>
                 <td>
-                  <label class="sr-only" for="tier-{user.id}">
-                    Membership tier for {user.full_name || user.email}
+                  <label class="sr-only" for="license-{user.id}">
+                    Licence for {user.full_name || user.email}
                   </label>
                   <select
-                    id="tier-{user.id}"
-                    value={user.membership_tier}
+                    id="license-{user.id}"
+                    value={user.license_id ?? ''}
                     disabled={busy}
-                    onchange={(event) => changeTier(user, event.currentTarget.value)}
+                    onchange={(event) => changeLicense(user, event.currentTarget.value)}
                   >
-                    {#each MEMBERSHIP_TIERS as tier (tier.slug)}
-                      <option value={tier.slug}>{tier.label}</option>
+                    <!-- No licence of their own: they fall to the default one. -->
+                    <option value="">Free</option>
+                    {#each licenses as license (license.id)}
+                      <option value={license.id}>{license.name}</option>
                     {/each}
-                    {#if !MEMBERSHIP_TIERS.some((tier) => tier.slug === user.membership_tier)}
-                      <option value={user.membership_tier}>{user.membership_tier}</option>
-                    {/if}
                   </select>
                 </td>
                 <td>

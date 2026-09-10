@@ -17,9 +17,11 @@ Ship production-grade code: clear, focused, secure, and easy to review. Prefer s
 
 - `src/pages/site/` — public marketing screens (`/` and future site routes)
 - `src/pages/admin/` — admin console screens under `/admin`
+- `src/pages/account/` — collector account screens under `/account`
 - `src/lib/components/` — shared UI
 - `src/lib/admin/` — console data access, one module per domain (`stats`, `users`, `news`, `tips`)
-- `src/lib/auth/` — admin session and the `is_admin()` check
+- `src/lib/account/` — the account shell, profile writes and membership reads
+- `src/lib/auth/` — the session both surfaces share, and the `is_admin()` check
 - `src/lib/supabase/` — client and error phrasing
 - `src/lib/utils/` — small shared helpers (`config.js`, `format.js`)
 - Register routes in `src/App.svelte` (`svelte-routing`)
@@ -33,8 +35,14 @@ Schema changes belong in `innerdial/supabase/migrations/`, not this repo.
 - Style with CSS variables from `src/app.css`; follow `DESIGN.md` — do not invent accent colors
 - Env: only `import.meta.env.VITE_*` in client code (copy `.env.example` → `.env.local`)
 - Never commit secrets or service-role keys; no empty `catch` / silent failure
-- Keep `/` for the corporate site; nest admin screens under `/admin`
-- Load admin screens through `LazyPage` — the console's Supabase and Chart.js
+- Keep `/` for the corporate site; nest admin screens under `/admin` and
+  collector screens under `/account`
+- The account area is the account, never the collection — no vault data on
+  the website. Watches, papers and service history stay in the app
+- Billing state is written only by the `razorpay-webhook` edge function in
+  the sibling repo. `public.subscriptions` has no client write policy, and a
+  browser must never be the thing that says a membership is paid
+- Load admin and account screens through `LazyPage` — the console's Supabase and Chart.js
   chunks must not land in the bundle a marketing visitor downloads
 - Admin privilege is an RLS matter, never a client one: guard with
   `public.is_admin()` in Postgres and treat `RequireAdmin` as UX only
