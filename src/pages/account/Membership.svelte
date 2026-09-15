@@ -3,8 +3,9 @@
    * The membership: what it costs, what state it is in, and what has been charged.
    *
    * The page never decides whether someone is a paying member. It opens a
-   * subscription through the billing function, sends the collector to Razorpay,
-   * and afterwards reads a row that only the webhook can write. That gap is
+   * subscription through the billing function, takes payment in Razorpay's
+   * checkout modal, has the function check the signature that comes back, and
+   * afterwards reads a row that only the webhook can write. That gap is
    * deliberate and is the reason for the "waiting for confirmation" state: a
    * browser returning from checkout knows the payment happened, but a browser
    * saying so is not evidence, and Razorpay's word arrives a moment later.
@@ -17,7 +18,7 @@
   import Loader from '$lib/components/Loader.svelte';
   import { currentUser } from '$lib/auth/session.svelte.js';
   import { errorMessage } from '$lib/supabase/client.js';
-  import { PLAN_BILLING, PLAN_FEATURES, PLAN_PRICE, PLAN_REFUND_NOTE } from '$lib/site/plan.js';
+  import { PLAN_BILLING, PLAN_FEATURES, PLAN_PRICE, PLAN_TRIAL_NOTE } from '$lib/site/plan.js';
   import {
     cancelMembership,
     daysLeft,
@@ -26,8 +27,10 @@
     formatDate,
     isLive,
     isPaid,
+    openCheckout,
     startMembership,
     statusOf,
+    verifyMembershipPayment,
   } from '$lib/account/subscription.js';
 
   /** @type {import('$lib/account/subscription.js').Subscription | null} */
@@ -37,6 +40,7 @@
 
   let loading = $state(true);
   let error = $state('');
+  let notice = $state('');
   let busy = $state('');
   let confirming = $state(false);
 
@@ -110,28 +114,89 @@
 
   onMount(load);
 
+  /** How often, and how many times, to look for the webhook after a verified payment. */
+  const CONFIRM_INTERVAL_MS = 2500;
+  const CONFIRM_ATTEMPTS = 6;
+
   async function begin() {
     if (busy) return;
 
     busy = 'begin';
     error = '';
+    notice = '';
 
     try {
-      const { checkoutUrl } = await startMembership();
+      const { checkoutUrl, subscriptionId, keyId } = await startMembership();
 
-      if (!checkoutUrl) {
-        error = 'Razorpay did not return a checkout page. Nothing has been charged.';
-        busy = '';
+      let outcome;
+      try {
+        if (!subscriptionId || !keyId) {
+          throw new Error('The billing function returned no subscription to check out against.');
+        }
+
+        outcome = await openCheckout({
+          keyId,
+          subscriptionId,
+          email: user.email,
+          // Razorpay wants a literal colour; the token is the only source for it.
+          color: getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim(),
+        });
+      } catch (cause) {
+        console.warn('[billing] checkout modal unavailable, using the hosted page:', cause);
+
+        if (!checkoutUrl) {
+          error = 'Razorpay checkout could not be opened. Nothing has been charged.';
+          return;
+        }
+
+        // A full navigation, not a new tab: a popup is what a browser blocks.
+        location.href = checkoutUrl;
         return;
       }
 
-      // A full navigation, not a new tab: Razorpay's hosted checkout is the
-      // rest of this flow, and a popup is what a browser blocks.
-      location.href = checkoutUrl;
+      if (outcome.kind === 'dismissed') {
+        // The subscription now exists unpaid; reading it back offers to finish it.
+        await load();
+        return;
+      }
+
+      if (outcome.kind === 'failed') {
+        // After the read, which clears `error` when it succeeds.
+        await load();
+        error = outcome.message;
+        return;
+      }
+
+      busy = 'confirming';
+      await verifyMembershipPayment(outcome.response);
+      notice = 'Payment received. Confirming your membership with Razorpay…';
+      await awaitConfirmation();
     } catch (cause) {
       error = errorMessage(cause);
+    } finally {
       busy = '';
     }
+  }
+
+  /**
+   * Re-read the row until the webhook has written it, for a short while.
+   *
+   * The signature says the money moved; the row is what says the membership is
+   * live, and it lands a few seconds later. Past the last attempt the page stops
+   * waiting and says so rather than spinning — the "check again" button is there.
+   */
+  async function awaitConfirmation() {
+    for (let attempt = 0; attempt < CONFIRM_ATTEMPTS; attempt += 1) {
+      await load();
+      if (isPaid(subscription)) {
+        notice = '';
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, CONFIRM_INTERVAL_MS));
+    }
+
+    notice =
+      'Payment received. Your membership will show here as soon as Razorpay confirms it — usually within a minute.';
   }
 
   async function confirmCancel() {
@@ -168,6 +233,8 @@
   {:else}
     {#if error}
       <Callout tone="error" message={error} />
+    {:else if notice}
+      <Callout tone="success" message={notice} />
     {/if}
 
     <section class="card status-card">
@@ -196,7 +263,7 @@
           Innerdial offers is open to you.
         {:else if trialing}
           Everything is open while your trial runs. Begin your membership to keep it once the trial
-          ends — the first 30 days of that are refundable in full.
+          ends.
         {:else if leaving}
           Cancelled. Your membership stays open until {formatDate(subscription?.current_end)} and will
           not renew after that.
@@ -206,8 +273,7 @@
           Your collection is still here and still yours to read and export. Adding new pieces needs a
           membership.
         {:else}
-          Innerdial is one rate with everything in it. Start whenever you like — the first 30 days
-          are refundable in full.
+          Innerdial is one rate with everything in it. Start whenever you like.
         {/if}
       </p>
 
@@ -272,8 +338,9 @@
       </div>
       {/if}
 
-      {#if !subscription && !granted}
-        <p class="fine">{PLAN_REFUND_NOTE}</p>
+      <!-- The trial is offered only to someone who has not had it: a running one counts down above, a spent one is over. -->
+      {#if !subscription && !granted && !trialing && !trialEnded}
+        <p class="fine">{PLAN_TRIAL_NOTE}</p>
       {/if}
     </section>
 

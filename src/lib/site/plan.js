@@ -10,7 +10,7 @@
 
 export const PLAN_PRICE = '₹499';
 export const PLAN_BILLING = '/ month';
-export const PLAN_REFUND_NOTE = '30-day full refund · Export your data anytime';
+export const PLAN_TRIAL_NOTE = '14-day free trial · Export your data anytime';
 
 /**
  * What the membership includes, in the order the app's Membership screen lists

@@ -9,14 +9,14 @@
    * Deliberately not a testimonial wall. Innerdial has not shipped publicly
    * yet, and invented quotes over invented names are a fabricated review
    * whatever the intent — so this section is built from terms that are
-   * verifiable instead: the price the app itself quotes, the refund window, the
+   * verifiable instead: the price the app itself quotes, the trial every account starts with, the
    * export guarantee, the fact that there is no marketplace to sell your data
    * to. When there are real collectors to quote, a testimonial rail belongs
    * directly beneath the guarantees.
    */
 
   const GUARANTEES = [
-    { id: 'refund', label: '30-day full refund', note: 'No conditions and no interview.' },
+    { id: 'trial', label: '14-day free trial', note: 'Every feature, and no card to start.' },
     { id: 'locked', label: 'Price locked for life', note: 'Founding rate, held while you stay.' },
     { id: 'export', label: 'Export anytime', note: 'Spreadsheet plus every file attached.' },
     { id: 'erase', label: 'Erase for real', note: 'Account and contents, gone on request.' },

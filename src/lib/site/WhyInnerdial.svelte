@@ -13,8 +13,8 @@
    * of parallel text.
    *
    * The figures are product facts, not usage claims: five tools because the
-   * Tools screen ships five, a thirty-day refund because that is the plan's
-   * term. Nothing here asserts a number about other people's collections.
+   * Tools screen ships five, a fourteen-day trial because that is what every
+   * new account is given. Nothing here asserts a number about other people's collections.
    */
 
   const CASES = [
@@ -42,7 +42,7 @@
 
   const FIGURES = [
     { id: 'tools', value: 5, suffix: '', label: 'Precision instruments' },
-    { id: 'refund', value: 30, suffix: '', label: 'Day full refund' },
+    { id: 'trial', value: 14, suffix: '', label: 'Day free trial' },
     { id: 'ads', value: 0, suffix: '', label: 'Ads, ever' },
     { id: 'export', value: 100, suffix: '%', label: 'Yours to export' },
   ];

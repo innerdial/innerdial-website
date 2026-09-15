@@ -203,9 +203,13 @@ export function daysLeft(expiresAt) {
 }
 
 /**
- * Open a membership, and hand back the checkout page to send the collector to.
+ * Open a membership, and hand back what checkout needs to take payment for it.
  *
- * @returns {Promise<{ status: string, checkoutUrl: string | null }>}
+ * `keyId` is the public Razorpay key, sent by the function rather than read from
+ * this build's env so it always matches the secret that made the subscription.
+ * `checkoutUrl` is the hosted page, kept for when the modal cannot load.
+ *
+ * @returns {Promise<{ status: string, checkoutUrl: string | null, subscriptionId: string, keyId: string }>}
  */
 export async function startMembership() {
   return invokeBilling('create');
@@ -217,6 +221,115 @@ export async function cancelMembership() {
 }
 
 /**
+ * Send checkout's signed response to the billing function to be checked.
+ *
+ * A pass means the payment really was made against this account's subscription
+ * — it does not make anyone a member. That still waits on the webhook, and the
+ * page reads the row to find out.
+ *
+ * @param {CheckoutSuccess} response
+ * @returns {Promise<{ verified: true, status: string }>}
+ */
+export async function verifyMembershipPayment(response) {
+  return invokeBilling('verify', {
+    razorpay_payment_id: response.razorpay_payment_id,
+    razorpay_subscription_id: response.razorpay_subscription_id,
+    razorpay_signature: response.razorpay_signature,
+  });
+}
+
+/**
+ * @typedef {{
+ *   razorpay_payment_id: string,
+ *   razorpay_subscription_id: string,
+ *   razorpay_signature: string,
+ * }} CheckoutSuccess
+ *
+ * @typedef {{ kind: 'paid', response: CheckoutSuccess }
+ *   | { kind: 'dismissed' }
+ *   | { kind: 'failed', message: string }} CheckoutOutcome
+ */
+
+const CHECKOUT_SCRIPT = 'https://checkout.razorpay.com/v1/checkout.js';
+
+/** @type {Promise<void> | null} */
+let checkoutScript = null;
+
+/**
+ * Razorpay's checkout script, loaded the first time someone reaches for it.
+ *
+ * Not a tag in `index.html`: every page of the marketing site would fetch a
+ * payment script only this button uses. A failed load is forgotten so the next
+ * click tries again rather than inheriting the rejection.
+ */
+function loadCheckoutScript() {
+  if (/** @type {any} */ (window).Razorpay) {
+    return Promise.resolve();
+  }
+
+  checkoutScript ??= new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = CHECKOUT_SCRIPT;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => {
+      script.remove();
+      checkoutScript = null;
+      reject(new Error('Razorpay checkout could not be loaded.'));
+    };
+    document.head.append(script);
+  });
+
+  return checkoutScript;
+}
+
+/**
+ * Open Razorpay's checkout modal on a subscription, and settle once it closes.
+ *
+ * `payment.failed` does not close the modal — Razorpay lets the collector try
+ * another card from inside it — so the most recent failure is held and
+ * reported only if they then dismiss it. Resolving on the first failure would
+ * show an error beside a modal that is still taking a second attempt.
+ *
+ * Rejects only when the script itself cannot load, which is the caller's cue to
+ * fall back to the hosted checkout page.
+ *
+ * @param {{ keyId: string, subscriptionId: string, email?: string, color?: string }} options
+ * @returns {Promise<CheckoutOutcome>}
+ */
+export async function openCheckout({ keyId, subscriptionId, email, color }) {
+  await loadCheckoutScript();
+
+  return new Promise((resolve) => {
+    /** @type {string} */
+    let lastFailure = '';
+
+    const Razorpay = /** @type {any} */ (window).Razorpay;
+    const checkout = new Razorpay({
+      key: keyId,
+      subscription_id: subscriptionId,
+      name: 'Innerdial',
+      description: 'Elite Member',
+      prefill: email ? { email } : undefined,
+      theme: color ? { color } : undefined,
+      /** @param {CheckoutSuccess} response */
+      handler: (response) => resolve({ kind: 'paid', response }),
+      modal: {
+        ondismiss: () =>
+          resolve(lastFailure ? { kind: 'failed', message: lastFailure } : { kind: 'dismissed' }),
+      },
+    });
+
+    checkout.on('payment.failed', (/** @type {any} */ event) => {
+      lastFailure =
+        event?.error?.description || 'The payment did not go through. Nothing has been charged.';
+    });
+
+    checkout.open();
+  });
+}
+
+/**
  * Call the billing function and surface what it actually said.
  *
  * `functions.invoke` reports a non-2xx as a `FunctionsHttpError` whose message
@@ -225,11 +338,12 @@ export async function cancelMembership() {
  * refusal from Razorpay ("International cards are not supported", "This account
  * already holds a membership") reaches the collector as the same empty sentence.
  *
- * @param {'create' | 'cancel'} action
+ * @param {'create' | 'cancel' | 'verify'} action
+ * @param {Record<string, string>} [fields]  sent alongside the action; never the account
  */
-async function invokeBilling(action) {
+async function invokeBilling(action, fields = {}) {
   const { data, error } = await getSupabase().functions.invoke('razorpay-subscription', {
-    body: { action },
+    body: { ...fields, action },
   });
 
   if (!error) {

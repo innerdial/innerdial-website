@@ -44,8 +44,8 @@
     },
     {
       id: 'leave',
-      q: 'What happens if I cancel?',
-      a: 'You export the lot — a spreadsheet with every file attached — and the account erases on request. Within thirty days the fee comes back in full.',
+      q: 'What if it is not for me?',
+      a: 'Every account starts with a fourteen-day free trial, and no card to begin. If you leave, you export the lot — a spreadsheet with every file attached — and the account erases on request.',
     },
   ];
 </script>

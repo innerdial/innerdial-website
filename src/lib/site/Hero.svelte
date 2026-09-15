@@ -72,7 +72,7 @@
 
       <ul class="trust" use:reveal={{ variant: 'fade', index: 7, immediate: true }}>
         <li><strong>{PLAN_PRICE}</strong>{PLAN_BILLING}</li>
-        <li>30-day full refund</li>
+        <li>14-day free trial</li>
         <li>Export your data anytime</li>
       </ul>
     </div>

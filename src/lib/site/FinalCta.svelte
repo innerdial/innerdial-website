@@ -1,7 +1,7 @@
 <script>
   import Backdrop from '$lib/site/Backdrop.svelte';
   import DialMotif from '$lib/site/DialMotif.svelte';
-  import { PLAN_REFUND_NOTE } from '$lib/site/plan.js';
+  import { PLAN_TRIAL_NOTE } from '$lib/site/plan.js';
   import { magnetic, reveal } from '$lib/site/motion.js';
 
   /**
@@ -44,7 +44,7 @@
       <a class="btn btn-secondary" href="#features"><span>Look through it first</span></a>
     </div>
 
-    <p class="note" use:reveal={{ variant: 'fade', index: 7 }}>{PLAN_REFUND_NOTE}</p>
+    <p class="note" use:reveal={{ variant: 'fade', index: 7 }}>{PLAN_TRIAL_NOTE}</p>
   </div>
 </section>
 
