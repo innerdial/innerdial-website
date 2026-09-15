@@ -23,7 +23,20 @@
   } from '$lib/admin/licenses.js';
   import { errorMessage } from '$lib/supabase/client.js';
 
-  const BLANK = { name: '', slug: '', description: '', features: /** @type {string[]} */ ([]) };
+  const BLANK = {
+    name: '',
+    slug: '',
+    description: '',
+    features: /** @type {string[]} */ ([]),
+    access: false,
+    /*
+      Zero, not unlimited, and not absent. A new tier should have to say out
+      loud that it opens the vault; and the key must always be written, because
+      an absent `vault.pieces` fails closed in Postgres and refuses every insert
+      without ever comparing a cap.
+    */
+    vaultPieces: /** @type {number | null} */ (0),
+  };
 
   let status = $state(/** @type {'loading' | 'ready' | 'error'} */ ('loading'));
   let error = $state('');
@@ -39,7 +52,13 @@
 
   /** The license open for editing, and the copy being edited. */
   let editingId = $state('');
-  let editDraft = $state({ name: '', description: '', features: /** @type {string[]} */ ([]) });
+  let editDraft = $state({
+    name: '',
+    description: '',
+    features: /** @type {string[]} */ ([]),
+    access: false,
+    vaultPieces: /** @type {number | null} */ (0),
+  });
 
   let confirmingId = $state('');
 
@@ -120,6 +139,8 @@
       name: license.name,
       description: license.description,
       features: [...license.features],
+      access: license.access,
+      vaultPieces: license.vaultPieces,
     };
   }
 
@@ -141,19 +162,22 @@
         name: editDraft.name,
         description: editDraft.description,
       });
-      await setLicenseFeatures(editingId, editDraft.features);
+
+      /*
+        Saved second and taken as the answer. The map is rebuilt from the name
+        as well as the boxes — the badge the app shows follows the licence's
+        name — so the row that comes back is the truth about both, and rebuilding
+        it here from the draft would be a second guess at what Postgres stored.
+      */
+      const saved = await setLicenseFeatures(editingId, {
+        features: editDraft.features,
+        access: editDraft.access,
+        vaultPieces: editDraft.vaultPieces,
+        name: editDraft.name,
+      });
 
       licenses = licenses
-        .map((license) =>
-          license.id === editingId
-            ? {
-                ...license,
-                name: editDraft.name.trim(),
-                description: editDraft.description.trim(),
-                features: [...editDraft.features].sort(),
-              }
-            : license,
-        )
+        .map((license) => (license.id === editingId ? saved : license))
         .sort(sortLicenses);
 
       editingId = '';
@@ -226,6 +250,71 @@
   </div>
 {/snippet}
 
+{#snippet entitlements(values, idPrefix)}
+  <fieldset class="feature-group entitlement-group">
+    <legend>Membership</legend>
+    <p class="entitlement-note">
+      These two are what the app and the database actually gate on. The ticks
+      above switch surfaces on; these decide whether the tier gets in at all,
+      and how much of a collection it may hold.
+    </p>
+
+    <label class="feature-option">
+      <input
+        type="checkbox"
+        checked={values.access}
+        onchange={(event) => {
+          const on = event.currentTarget.checked;
+          if (idPrefix === 'new') draft.access = on;
+          else editDraft.access = on;
+        }}
+      />
+      <span class="feature-copy">
+        <span class="feature-name">App access</span>
+        <span class="feature-hint">
+          May reach the screens that add pieces. Without this the tier is
+          read-only and is shown the membership screen.
+        </span>
+      </span>
+    </label>
+
+    <label class="feature-option">
+      <input
+        type="checkbox"
+        checked={values.vaultPieces === null}
+        onchange={(event) => {
+          const next = event.currentTarget.checked ? null : 0;
+          if (idPrefix === 'new') draft.vaultPieces = next;
+          else editDraft.vaultPieces = next;
+        }}
+      />
+      <span class="feature-copy">
+        <span class="feature-name">Unlimited vault</span>
+        <span class="feature-hint">No cap on how many pieces may be held.</span>
+      </span>
+    </label>
+
+    {#if values.vaultPieces !== null}
+      <label class="pieces-field" for="pieces-{idPrefix}">
+        <span class="feature-name">Pieces allowed</span>
+        <input
+          id="pieces-{idPrefix}"
+          type="number"
+          min="0"
+          step="1"
+          value={values.vaultPieces}
+          onchange={(event) => {
+            const parsed = Number.parseInt(event.currentTarget.value, 10);
+            const next = Number.isNaN(parsed) || parsed < 0 ? 0 : parsed;
+            if (idPrefix === 'new') draft.vaultPieces = next;
+            else editDraft.vaultPieces = next;
+          }}
+        />
+      </label>
+    {/if}
+  </fieldset>
+{/snippet}
+
 {#snippet featureTags(keys)}
   <ul class="feature-tags" aria-label="Included features">
     {#each keys as key (key)}
@@ -288,6 +377,7 @@
           </Field>
 
           {@render featurePicker(draft.features, 'new')}
+          {@render entitlements(draft, 'new')}
 
           <div class="form-actions">
             <Button variant="primary" type="submit" disabled={saving}>
@@ -377,6 +467,7 @@
                 <p class="edit-slug">Slug: <code>{license.slug}</code></p>
 
                 {@render featurePicker(editDraft.features, license.id)}
+                {@render entitlements(editDraft, license.id)}
 
                 <div class="form-actions">
                   <Button variant="primary" type="submit" size="sm" disabled={saving}>
@@ -662,6 +753,32 @@
     font-size: 0.875rem;
     font-weight: 500;
     color: var(--color-ink);
+  }
+
+  .entitlement-group {
+    margin-top: var(--space-md);
+  }
+
+  .entitlement-note {
+    margin: 0 0 var(--space-sm);
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: var(--color-text-muted);
+  }
+
+  .pieces-field {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+  }
+
+  .pieces-field input {
+    width: 6rem;
+    padding: 0.375rem 0.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.375rem;
+    font: inherit;
   }
 
   .feature-hint {

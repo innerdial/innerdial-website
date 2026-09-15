@@ -13,7 +13,6 @@ import { getSupabase } from '$lib/supabase/client.js';
  *   id: string,
  *   full_name: string | null,
  *   email: string | null,
- *   membership_tier: string,
  *   license_id: string | null,
  *   created_at: string,
  *   last_seen_at: string | null,
@@ -21,26 +20,6 @@ import { getSupabase } from '$lib/supabase/client.js';
  *   is_admin: boolean,
  * }} AdminUser
  */
-
-/*
-  A label, and only a label.
-
-  `profiles.membership_tier` decides nothing: the app gates on the licence, and
-  so does the RLS policy on `watches`. It is kept because the dashboard's tier
-  breakdown still counts it, and it is deliberately no longer writable from the
-  collector list — a control that looked like it granted a plan and in fact
-  granted nothing is what cost an afternoon of debugging a 403.
-*/
-export const MEMBERSHIP_TIERS = [
-  { slug: 'founding', label: 'Founding Collector' },
-  { slug: 'collector', label: 'Collector' },
-  { slug: 'archivist', label: 'Archivist' },
-];
-
-/** @param {string | null | undefined} slug */
-export function tierLabel(slug) {
-  return MEMBERSHIP_TIERS.find((tier) => tier.slug === slug)?.label ?? (slug || 'Unknown');
-}
 
 export const SORT_OPTIONS = [
   { value: 'created_at', label: 'Newest first', column: 'created_at', ascending: false },
@@ -65,7 +44,7 @@ export async function fetchUsers({ search = '', sort = 'created_at', page = 0, b
   let query = supabase
     .from('profiles')
     .select(
-      'id, full_name, email, membership_tier, license_id, created_at, last_seen_at, blocked_at',
+      'id, full_name, email, license_id, created_at, last_seen_at, blocked_at',
       {
         count: 'exact',
       },

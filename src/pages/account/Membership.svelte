@@ -20,6 +20,7 @@
   import { PLAN_BILLING, PLAN_FEATURES, PLAN_PRICE, PLAN_REFUND_NOTE } from '$lib/site/plan.js';
   import {
     cancelMembership,
+    daysLeft,
     fetchMembership,
     formatAmount,
     formatDate,
@@ -51,11 +52,54 @@
   /** Set up at Razorpay but never paid — the checkout link is still good. */
   const unpaid = $derived(subscription?.status === 'created' && Boolean(subscription.short_url));
 
+  /** @type {import('$lib/account/subscription.js').Licence | null} */
+  let licence = $state(null);
+
+  /*
+    A membership held by licence rather than bought — a Founder. Checked only
+    when nothing is being paid: a paying member is owed their renewal date and
+    cancel button, which a licence has no way to give them.
+  */
+  const granted = $derived(!paid && !unpaid && licence?.access === true && !licence.trial);
+
+  /** In a trial, and not yet paying. Still offered the membership, but told the clock is running. */
+  const trialing = $derived(!paid && !unpaid && licence?.trial === true);
+
+  /*
+    Never subscribed, and the trial every account starts with has run out. The
+    licence no longer grants anything, but the expiry stays on the profile.
+  */
+  const trialEnded = $derived(
+    !subscription &&
+      licence?.access !== true &&
+      Boolean(licence?.expiresAt) &&
+      daysLeft(licence?.expiresAt ?? null) === 0,
+  );
+
+  /*
+    The same names the app's `membershipBadge()` gives: the licence's own badge
+    for a member — so a Founder is called one — falling back to Elite Member,
+    and a trial that counts down. Other subscription states keep Razorpay's
+    words, because this is the page that has to explain a failed charge.
+  */
+  const headline = $derived.by(() => {
+    if (paid || granted) return licence?.badge ?? 'Elite Member';
+    if (trialing) {
+      const days = daysLeft(licence?.expiresAt ?? null);
+      return `Trial · ${days} ${days === 1 ? 'day' : 'days'} left`;
+    }
+    if (trialEnded) return 'Trial ended';
+    return live || subscription ? state.label : 'Not a member yet';
+  });
+
+  const tone = $derived(granted ? 'good' : trialing ? 'pending' : trialEnded ? 'ended' : state.tone);
+
   async function load() {
     try {
       const result = await fetchMembership(user.id);
       subscription = result.subscription;
       payments = result.payments;
+      licence = result.licence;
       error = '';
     } catch (cause) {
       error = errorMessage(cause);
@@ -129,25 +173,38 @@
     <section class="card status-card">
       <div class="status-head">
         <div>
-          <p class="eyebrow">Founding membership</p>
+          <!-- The plan's name as the app's Membership screen prints it; a granted tier is not that plan. -->
+          <p class="eyebrow">{granted ? 'Membership' : 'Elite Member'}</p>
           <p class="status">
-            <span class="dot {state.tone}" aria-hidden="true"></span>
-            {live || subscription ? state.label : 'Not a member yet'}
+            <span class="dot {tone}" aria-hidden="true"></span>
+            {headline}
           </p>
         </div>
 
-        <p class="price">
-          <span class="amount">{PLAN_PRICE}</span>
-          <span class="billing">{PLAN_BILLING}</span>
-        </p>
+        <!-- Nothing is charged on a granted membership, so no rate is quoted at it. -->
+        {#if !granted}
+          <p class="price">
+            <span class="amount">{PLAN_PRICE}</span>
+            <span class="billing">{PLAN_BILLING}</span>
+          </p>
+        {/if}
       </div>
 
       <p class="note">
-        {#if leaving}
+        {#if granted}
+          Your membership was granted to this account, so there is nothing to pay. Everything
+          Innerdial offers is open to you.
+        {:else if trialing}
+          Everything is open while your trial runs. Begin your membership to keep it once the trial
+          ends — the first 30 days of that are refundable in full.
+        {:else if leaving}
           Cancelled. Your membership stays open until {formatDate(subscription?.current_end)} and will
           not renew after that.
         {:else if subscription}
           {state.note}
+        {:else if trialEnded}
+          Your collection is still here and still yours to read and export. Adding new pieces needs a
+          membership.
         {:else}
           Innerdial is one rate with everything in it. Start whenever you like — the first 30 days
           are refundable in full.
@@ -167,6 +224,8 @@
         </dl>
       {/if}
 
+      <!-- A granted membership has nothing to buy, renew or cancel here. -->
+      {#if !granted}
       <div class="actions">
         {#if unpaid}
           <Button variant="primary" onclick={begin} disabled={Boolean(busy)}>
@@ -211,13 +270,14 @@
           </Button>
         {/if}
       </div>
+      {/if}
 
-      {#if !subscription}
+      {#if !subscription && !granted}
         <p class="fine">{PLAN_REFUND_NOTE}</p>
       {/if}
     </section>
 
-    {#if !paid}
+    {#if !paid && !granted}
       <section class="card">
         <h2>What is included</h2>
         <ul class="features">

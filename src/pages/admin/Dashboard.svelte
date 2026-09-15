@@ -19,9 +19,8 @@
     fetchCollectionDistribution,
     fetchDailySeries,
     fetchOverviewStats,
-    fetchTierBreakdown,
+    fetchLicenseBreakdown,
   } from '$lib/admin/stats.js';
-  import { tierLabel } from '$lib/admin/users.js';
   import { formatCount, formatDay } from '$lib/utils/format.js';
 
   const RANGES = [
@@ -40,7 +39,7 @@
   /** @type {import('$lib/admin/stats.js').DailyPoint[]} */
   let series = $state([]);
 
-  /** @type {{ membership_tier: string, users: number }[]} */
+  /** @type {{ license: string, users: number }[]} */
   let tiers = $state([]);
 
   /** @type {{ bucket: string, users: number }[]} */
@@ -54,7 +53,7 @@
       const [overview, daily, tierRows, sizeRows] = await Promise.all([
         fetchOverviewStats(),
         fetchDailySeries(days),
-        fetchTierBreakdown(),
+        fetchLicenseBreakdown(),
         fetchCollectionDistribution(),
       ]);
 
@@ -149,7 +148,7 @@
     const shades = [palette.primary, palette.ink, '#8d9aa8'];
 
     return {
-      labels: tiers.map((row) => tierLabel(row.membership_tier)),
+      labels: tiers.map((row) => row.license),
       datasets: [
         {
           data: tiers.map((row) => row.users),
@@ -323,7 +322,7 @@
       </div>
 
       <div class="chart">
-        <Panel title="Membership tiers" hint="How the collector base splits across tiers.">
+        <Panel title="Licences" hint="How the collector base splits across licences.">
           {#if tiers.length === 0}
             <Callout message="No collectors yet." />
           {:else}
@@ -332,7 +331,7 @@
               data={tierData}
               options={donutOptions}
               height={260}
-              label="Collectors by membership tier"
+              label="Collectors by licence"
             />
           {/if}
         </Panel>

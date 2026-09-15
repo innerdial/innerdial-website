@@ -23,6 +23,8 @@
     login: () => import('./pages/site/Login.svelte'),
     home: () => import('./pages/account/Account.svelte'),
     membership: () => import('./pages/account/Membership.svelte'),
+    // Public, but it signs in and calls Supabase, so it is not in the eager bundle.
+    deletion: () => import('./pages/site/DeleteAccount.svelte'),
   };
 </script>
 
@@ -34,6 +36,9 @@
 
   <Route path="/account"><LazyPage load={account.home} guard="session" /></Route>
   <Route path="/account/membership"><LazyPage load={account.membership} guard="session" /></Route>
+
+  <!-- Unguarded: the app stores link here, and it must explain itself to someone signed out. -->
+  <Route path="/delete-account"><LazyPage load={account.deletion} /></Route>
 
   <!-- Same reasoning as /login, for the console's own door. -->
   <Route path="/admin/login"><LazyPage load={admin.login} /></Route>

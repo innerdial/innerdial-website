@@ -8,7 +8,7 @@
  * so treat a change to either as a change to both.
  */
 
-export const PLAN_PRICE = '₹699';
+export const PLAN_PRICE = '₹499';
 export const PLAN_BILLING = '/ month';
 export const PLAN_REFUND_NOTE = '30-day full refund · Export your data anytime';
 

@@ -61,13 +61,22 @@ export async function fetchDailySeries(days) {
   }));
 }
 
-/** @returns {Promise<{ membership_tier: string, users: number }[]>} */
-export async function fetchTierBreakdown() {
-  const { data, error } = await getSupabase().rpc('admin_tier_breakdown');
+/**
+ * How many collectors sit on each licence.
+ *
+ * Counts licences, not `profiles.membership_tier`. Nothing writes that column
+ * any more — the collector list assigns a licence — and it defaulted to
+ * 'founding' on every row ever created, so the chart it fed reported a product
+ * full of founding members who had never paid.
+ *
+ * @returns {Promise<{ license: string, users: number }[]>}
+ */
+export async function fetchLicenseBreakdown() {
+  const { data, error } = await getSupabase().rpc('admin_license_breakdown');
   if (error) throw error;
 
   return (data ?? []).map((row) => ({
-    membership_tier: row.membership_tier,
+    license: row.license,
     users: Number(row.users),
   }));
 }

@@ -14,7 +14,6 @@ import { getSupabase } from '$lib/supabase/client.js';
  *   id: string,
  *   full_name: string | null,
  *   email: string | null,
- *   membership_tier: string,
  *   created_at: string,
  * }} Account
  */
@@ -26,7 +25,7 @@ import { getSupabase } from '$lib/supabase/client.js';
 export async function fetchAccount(userId) {
   const { data, error } = await getSupabase()
     .from('profiles')
-    .select('id, full_name, email, membership_tier, created_at')
+    .select('id, full_name, email, created_at')
     .eq('id', userId)
     .maybeSingle();
 
@@ -53,7 +52,7 @@ export async function updateName(userId, fullName) {
     .from('profiles')
     .update({ full_name: name })
     .eq('id', userId)
-    .select('id, full_name, email, membership_tier, created_at')
+    .select('id, full_name, email, created_at')
     .single();
 
   if (error) throw error;

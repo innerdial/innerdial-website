@@ -112,24 +112,44 @@ export function isPaid(subscription) {
  * needs to see that it ended, and be offered a new one. `isLive` is what the
  * page uses to decide which of those it is looking at.
  *
+ * The licence is read alongside it, because a subscription is not the only way
+ * in. A Founder is granted from the admin console and never goes near Razorpay,
+ * and a page that read only `subscriptions` offered them a checkout for the
+ * membership they already hold. `effective_features` is the same function the
+ * app's gate and the RLS policy on `watches` call, so this page cannot come to a
+ * different conclusion from either about who is a member.
+ *
  * @param {string} userId
- * @returns {Promise<{ subscription: Subscription | null, payments: Payment[] }>}
+ * @returns {Promise<{ subscription: Subscription | null, payments: Payment[], licence: Licence }>}
  */
 export async function fetchMembership(userId) {
   const supabase = getSupabase();
 
-  const { data: subscription, error } = await supabase
-    .from('subscriptions')
-    .select(SUBSCRIPTION_COLUMNS)
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const [
+    { data: subscription, error },
+    { data: featureMap, error: featureError },
+    { data: profile, error: profileError },
+  ] = await Promise.all([
+    supabase
+      .from('subscriptions')
+      .select(SUBSCRIPTION_COLUMNS)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase.rpc('effective_features'),
+    // The expiry belongs to this collector's grant, not to the licence itself.
+    supabase.from('profiles').select('license_expires_at').eq('id', userId).maybeSingle(),
+  ]);
 
   if (error) throw error;
+  if (featureError) throw featureError;
+  if (profileError) throw profileError;
+
+  const licence = toLicence(featureMap, profile?.license_expires_at ?? null);
 
   if (!subscription) {
-    return { subscription: null, payments: [] };
+    return { subscription: null, payments: [], licence };
   }
 
   const { data: payments, error: paymentsError } = await supabase
@@ -140,7 +160,46 @@ export async function fetchMembership(userId) {
 
   if (paymentsError) throw paymentsError;
 
-  return { subscription, payments: payments ?? [] };
+  return { subscription, payments: payments ?? [], licence };
+}
+
+/**
+ * What the collector's licence says about their membership.
+ *
+ * `access` is absent rather than false on the free tier, so only `true` counts.
+ * A trial grants access too, and is kept apart so it is never called a
+ * membership.
+ *
+ * @typedef {{ access: boolean, trial: boolean, badge: string | null, expiresAt: string | null }} Licence
+ *
+ * @param {unknown} featureMap
+ * @param {string | null} expiresAt
+ * @returns {Licence}
+ */
+function toLicence(featureMap, expiresAt) {
+  const map = /** @type {Record<string, unknown>} */ (featureMap ?? {});
+  const badge = map['membership.badge'];
+
+  return {
+    access: map['membership.access'] === true,
+    trial: map['membership.trial'] === true,
+    badge: typeof badge === 'string' && badge ? badge : null,
+    expiresAt,
+  };
+}
+
+/**
+ * Whole days left on a licence that expires, rounded up so the last day reads
+ * "1 day left"; zero once it has run out or when it never expires.
+ *
+ * @param {string | null} expiresAt
+ */
+export function daysLeft(expiresAt) {
+  const ends = expiresAt ? Date.parse(expiresAt) : Number.NaN;
+  if (Number.isNaN(ends)) return 0;
+
+  const remaining = ends - Date.now();
+  return remaining > 0 ? Math.ceil(remaining / (24 * 60 * 60 * 1000)) : 0;
 }
 
 /**

@@ -232,6 +232,15 @@
         </div>
       </form>
     </section>
+
+    <section class="card">
+      <h2>Delete account</h2>
+      <p class="note">
+        Permanently removes this account, your whole collection and any membership. It cannot be
+        undone.
+      </p>
+      <a class="danger-link" href="/delete-account">Delete your account…</a>
+    </section>
   {/if}
 </AccountShell>
 
@@ -273,5 +282,16 @@
   .actions {
     display: flex;
     gap: var(--space-sm);
+  }
+
+  .danger-link {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-danger);
+    text-underline-offset: 3px;
+  }
+
+  .danger-link:hover {
+    color: var(--color-danger-hover);
   }
 </style>

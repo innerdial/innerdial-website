@@ -37,7 +37,7 @@
    */
   function destination() {
     const next = new URLSearchParams(location.search).get('next') ?? '';
-    return next.startsWith('/account') ? next : '/account';
+    return next.startsWith('/account') || next === '/delete-account' ? next : '/account';
   }
 
   // Someone with a live session has nothing to type.

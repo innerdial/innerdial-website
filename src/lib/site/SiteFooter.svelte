@@ -70,6 +70,7 @@
 
   <div class="shell base">
     <p>© {year} {appConfig.appName}. All rights reserved.</p>
+    <a class="base-link" href="/delete-account">Delete your account</a>
     <p class="made">Built for collectors, not for feeds.</p>
   </div>
 </footer>
@@ -179,6 +180,22 @@
 
   .base p {
     margin: 0;
+  }
+
+  .base-link {
+    color: rgb(255 255 255 / 50%);
+    text-decoration: none;
+    transition: color 240ms var(--ease-out);
+  }
+
+  .base-link:hover {
+    color: var(--color-primary);
+  }
+
+  .base-link:focus-visible {
+    outline: 3px solid rgb(184 147 90 / 45%);
+    outline-offset: 3px;
+    border-radius: var(--radius-sm);
   }
 
   .made {
