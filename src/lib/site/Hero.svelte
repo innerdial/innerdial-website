@@ -3,7 +3,7 @@
   import AppScreen from '$lib/site/AppScreen.svelte';
   import Backdrop from '$lib/site/Backdrop.svelte';
   import DialMotif from '$lib/site/DialMotif.svelte';
-  import { PLAN_BILLING, PLAN_PRICE } from '$lib/site/plan.js';
+  import { PLANS } from '$lib/site/plan.js';
   import { magnetic, reveal, splitWords, tilt } from '$lib/site/motion.js';
 
   /**
@@ -71,7 +71,9 @@
       </div>
 
       <ul class="trust" use:reveal={{ variant: 'fade', index: 7, immediate: true }}>
-        <li><strong>{PLAN_PRICE}</strong>{PLAN_BILLING}</li>
+        <li>
+          <span><strong>{PLANS.monthly.price}</strong> {PLANS.monthly.billing} · <strong>{PLANS.yearly.price}</strong> {PLANS.yearly.billing}</span>
+        </li>
         <li>14-day free trial</li>
         <li>Export your data anytime</li>
       </ul>

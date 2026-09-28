@@ -14,6 +14,7 @@ import { getSupabase } from '$lib/supabase/client.js';
  *   id: string,
  *   status: string,
  *   provider_subscription_id: string,
+ *   billing_period: import('$lib/site/plan.js').BillingPeriod,
  *   short_url: string | null,
  *   current_start: string | null,
  *   current_end: string | null,
@@ -35,7 +36,7 @@ import { getSupabase } from '$lib/supabase/client.js';
  */
 
 const SUBSCRIPTION_COLUMNS =
-  'id, status, provider_subscription_id, short_url, current_start, current_end, charge_at, ended_at, cancel_at_cycle_end, created_at';
+  'id, status, provider_subscription_id, billing_period, short_url, current_start, current_end, charge_at, ended_at, cancel_at_cycle_end, created_at';
 
 /** Razorpay's statuses, and what each one means for someone reading their account page. */
 const STATES = {
@@ -209,10 +210,14 @@ export function daysLeft(expiresAt) {
  * this build's env so it always matches the secret that made the subscription.
  * `checkoutUrl` is the hosted page, kept for when the modal cannot load.
  *
+ * An unpaid checkout already open for the other period is replaced by the
+ * function, not reused — see `handleCreate` in `razorpay-subscription`.
+ *
+ * @param {import('$lib/site/plan.js').BillingPeriod} period
  * @returns {Promise<{ status: string, checkoutUrl: string | null, subscriptionId: string, keyId: string }>}
  */
-export async function startMembership() {
-  return invokeBilling('create');
+export async function startMembership(period) {
+  return invokeBilling('create', { period });
 }
 
 /** Cancel at the end of the period already paid for. */

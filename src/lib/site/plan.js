@@ -1,15 +1,42 @@
 /**
- * The founding-member plan, as the site quotes it.
+ * The founding-member plans, as the site quotes them.
  *
- * This mirrors `src/lib/membership/plan.js` in the sibling `innerdial` repo,
- * which is what the app's own Membership screen reads. The two are separate
- * bundles and cannot share a module, so the price is stated in both — a
- * marketing page and a checkout that disagree on the number reads as a bait,
- * so treat a change to either as a change to both.
+ * The prices are set on the Razorpay plans that `razorpay-subscription` in the
+ * sibling `innerdial` repo checks out against (`RAZORPAY_PLAN_ID` and
+ * `RAZORPAY_YEARLY_PLAN_ID`). A marketing page and a checkout that disagree on
+ * the number reads as a bait, so treat a change to either as a change to both.
+ *
+ * `id` is what the billing function is sent as `period`, and what
+ * `subscriptions.billing_period` holds.
+ *
+ * @typedef {'monthly' | 'yearly'} BillingPeriod
+ * @typedef {{ id: BillingPeriod, label: string, price: string, billing: string, saving: string | null, note: string }} Plan
  */
 
-export const PLAN_PRICE = '₹499';
-export const PLAN_BILLING = '/ month';
+/** @type {Record<BillingPeriod, Plan>} */
+export const PLANS = {
+  monthly: {
+    id: 'monthly',
+    label: 'Monthly',
+    price: '₹499',
+    billing: '/ month',
+    saving: null,
+    note: 'Billed every month. Cancel whenever you like.',
+  },
+  // Twelve months at ₹499 is ₹5,988; ₹4,999 over twelve is ₹416.58.
+  yearly: {
+    id: 'yearly',
+    label: 'Yearly',
+    price: '₹4,999',
+    billing: '/ year',
+    saving: 'Save ₹989',
+    note: 'About ₹417 a month, billed once a year.',
+  },
+};
+
+/** In the order the switch shows them. */
+export const PLAN_LIST = [PLANS.monthly, PLANS.yearly];
+
 export const PLAN_TRIAL_NOTE = '14-day free trial · Export your data anytime';
 
 /**

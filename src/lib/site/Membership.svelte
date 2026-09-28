@@ -1,5 +1,5 @@
 <script>
-  import { PLAN_BILLING, PLAN_FEATURES, PLAN_PRICE } from '$lib/site/plan.js';
+  import { PLAN_FEATURES, PLAN_LIST } from '$lib/site/plan.js';
   import Backdrop from '$lib/site/Backdrop.svelte';
   import { reveal } from '$lib/site/motion.js';
 
@@ -20,8 +20,7 @@
     { id: 'locked', label: 'Price locked for life', note: 'Founding rate, held while you stay.' },
     { id: 'export', label: 'Export anytime', note: 'Spreadsheet plus every file attached.' },
     { id: 'erase', label: 'Erase for real', note: 'Account and contents, gone on request.' },
-  ];
-</script>
+  ];</script>
 
 <section class="membership" id="membership" aria-labelledby="membership-heading">
   <Backdrop tone="light" glow="right" fade="radial" cell={64} />
@@ -58,24 +57,56 @@
     </div>
 
     <div class="plan-column">
-      <article class="plan sweep-border" use:reveal={{ variant: 'scale', index: 2 }}>
-        <span class="plan-glow" aria-hidden="true"></span>
+      <!--
+        Both plans in view at once, rather than one behind a switch: the yearly
+        saving is the reason to choose it, and a saving nobody sees until they
+        click is no reason at all. Yearly carries the emphasis because it is
+        the better deal, not because it is the default.
+      -->
+      <div class="plans">
+        {#each PLAN_LIST as plan, i (plan.id)}
+          {@const featured = plan.saving !== null}
+          <article
+            class="plan"
+            class:featured
+            class:sweep-border={featured}
+            aria-labelledby="plan-{plan.id}"
+            use:reveal={{ variant: 'scale', index: 2 + i }}
+          >
+            {#if featured}
+              <span class="plan-glow" aria-hidden="true"></span>
+            {/if}
 
-        <header class="plan-head">
-          <p class="plan-tier">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path
-                d="M12 2.5l2.9 5.88 6.49.95-4.7 4.58 1.11 6.46L12 17.33l-5.8 3.05 1.1-6.46-4.69-4.58 6.49-.95L12 2.5z"
-              />
-            </svg>
-            Founding member
-          </p>
+            <header class="plan-head">
+              <h3 class="plan-name" id="plan-{plan.id}">{plan.label}</h3>
+              {#if plan.saving}
+                <span class="plan-saving">{plan.saving}</span>
+              {/if}
+            </header>
 
-          <p class="plan-price">
-            <span class="amount">{PLAN_PRICE}</span>
-            <span class="billing">{PLAN_BILLING}</span>
-          </p>
-        </header>
+            <p class="plan-price">
+              <span class="amount">{plan.price}</span>
+              <span class="billing">{plan.billing}</span>
+            </p>
+
+            <p class="plan-billed">{plan.note}</p>
+
+            <a class="btn {featured ? 'btn-primary' : 'btn-secondary'} plan-cta" href="#top">
+              Begin your collection
+            </a>
+          </article>
+        {/each}
+      </div>
+
+      <div class="included" use:reveal={{ variant: 'up', index: 4 }}>
+        <p class="included-title">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path
+              d="M12 2.5l2.9 5.88 6.49.95-4.7 4.58 1.11 6.46L12 17.33l-5.8 3.05 1.1-6.46-4.69-4.58 6.49-.95L12 2.5z"
+            />
+          </svg>
+          Founding member · both plans include
+        </p>
 
         <ul class="plan-features">
           {#each PLAN_FEATURES as feature (feature.id)}
@@ -89,12 +120,8 @@
           {/each}
         </ul>
 
-        <a class="btn btn-primary plan-cta" href="#top">Begin your collection</a>
-
-        <p class="plan-note">
-          Cancel from inside the app. Your export goes with you.
-        </p>
-      </article>
+        <p class="plan-note">Cancel from inside the app. Your export goes with you.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -181,34 +208,52 @@
 
   .plan-column {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    gap: var(--space-md);
+    width: min(100%, 34rem);
+    justify-self: center;
+  }
+
+  .plans {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13.5rem), 1fr));
+    gap: var(--space-md);
   }
 
   .plan {
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: var(--space-lg);
+    gap: var(--space-sm);
     overflow: hidden;
-    width: min(100%, 27rem);
-    padding: clamp(1.5rem, 3vw, 2.25rem);
+    padding: clamp(1.25rem, 2.5vw, 1.75rem);
     border-radius: var(--radius-lg);
-    /* Border and fill both come from `.sweep-border` in site.css — it paints
-       them as one pair and setting either here would break the other. */
-    --sweep-fill: var(--paper);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-sm);
     isolation: isolate;
   }
 
-  /* A brass wash from the top corner — the card should read as the one thing
-     on the page being offered, without a coloured border shouting it. */
+  /* Border and fill both come from `.sweep-border` in site.css on the featured
+     card — it paints them as one pair, and a scoped rule setting either here
+     would out-rank it and break the effect. So only the plain card sets them. */
+  .plan:not(.featured) {
+    border: 1px solid var(--color-border);
+    background: var(--paper);
+  }
+
+  .plan.featured {
+    --sweep-fill: var(--paper);
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* A brass wash from the top corner — the featured card should read as the
+     one being recommended, without a coloured border shouting it. */
   .plan-glow {
     position: absolute;
-    top: -40%;
-    right: -30%;
+    top: -50%;
+    right: -45%;
     z-index: -1;
-    width: 26rem;
-    height: 26rem;
+    width: 20rem;
+    height: 20rem;
     border-radius: 50%;
     background: radial-gradient(circle, rgb(184 147 90 / 16%) 0%, transparent 66%);
     pointer-events: none;
@@ -216,39 +261,46 @@
 
   .plan-head {
     display: flex;
-    flex-direction: column;
-    gap: var(--space-md);
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-xs);
   }
 
-  .plan-tier {
-    display: inline-flex;
-    align-self: flex-start;
-    align-items: center;
-    gap: 0.45rem;
+  .plan-name {
     margin: 0;
-    padding: 0.35rem 0.75rem;
-    border: 1px solid var(--color-primary);
-    border-radius: 9999px;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
     font-size: 0.75rem;
-    font-weight: 500;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .featured .plan-name {
     color: var(--color-primary);
   }
 
-  .plan-tier svg {
-    width: 0.6875rem;
-    height: 0.6875rem;
+  .plan-saving {
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    background: var(--color-primary);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: #fff;
   }
 
   .plan-price {
     display: flex;
+    flex-wrap: wrap;
     align-items: baseline;
-    gap: 0.4rem;
-    margin: 0;
+    gap: 0.35rem;
+    margin: var(--space-xs) 0 0;
   }
 
   .amount {
     font-family: var(--font-display);
-    font-size: clamp(3rem, 6vw, 4rem);
+    font-size: clamp(2.5rem, 4.5vw, 3rem);
     font-weight: 700;
     line-height: 1;
     letter-spacing: -0.02em;
@@ -256,17 +308,55 @@
   }
 
   .billing {
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
     color: var(--color-text-muted);
   }
 
-  .plan-features {
+  .plan-billed {
+    flex: 1;
+    margin: 0 0 var(--space-sm);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+  }
+
+  .plan :global(.plan-cta) {
+    width: 100%;
+  }
+
+  /* ------------------------------------------------------------- included */
+
+  .included {
     display: flex;
     flex-direction: column;
     gap: var(--space-md);
+    padding: clamp(1.25rem, 2.5vw, 1.75rem);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--paper);
+  }
+
+  .included-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
     margin: 0;
-    padding: var(--space-lg) 0 0;
-    border-top: 1px solid var(--color-border);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-primary);
+  }
+
+  .included-title svg {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+
+  .plan-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+    gap: var(--space-md);
+    margin: 0;
+    padding: 0;
     list-style: none;
   }
 
@@ -292,7 +382,7 @@
   }
 
   .feature-body strong {
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
     font-weight: 600;
     color: var(--color-text);
   }
@@ -303,12 +393,10 @@
     color: var(--color-text-muted);
   }
 
-  .plan-column :global(.plan-cta) {
-    width: 100%;
-  }
-
   .plan-note {
-    margin: -0.5rem 0 0;
+    margin: 0;
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--color-border);
     text-align: center;
     font-size: 0.75rem;
     color: var(--color-text-muted);

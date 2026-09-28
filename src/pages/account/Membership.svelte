@@ -16,9 +16,10 @@
   import Button from '$lib/components/Button.svelte';
   import Callout from '$lib/components/Callout.svelte';
   import Loader from '$lib/components/Loader.svelte';
+  import PlanSwitch from '$lib/components/PlanSwitch.svelte';
   import { currentUser } from '$lib/auth/session.svelte.js';
   import { errorMessage } from '$lib/supabase/client.js';
-  import { PLAN_BILLING, PLAN_FEATURES, PLAN_PRICE, PLAN_TRIAL_NOTE } from '$lib/site/plan.js';
+  import { PLAN_FEATURES, PLAN_TRIAL_NOTE, PLANS } from '$lib/site/plan.js';
   import {
     cancelMembership,
     daysLeft,
@@ -43,6 +44,15 @@
   let notice = $state('');
   let busy = $state('');
   let confirming = $state(false);
+
+  /**
+   * The period checkout will open on. Follows the subscription once there is
+   * one, so the price quoted beside a membership is the one it is billed at.
+   *
+   * @type {import('$lib/site/plan.js').BillingPeriod}
+   */
+  let period = $state('monthly');
+  const plan = $derived(PLANS[period]);
 
   const user = currentUser();
 
@@ -102,6 +112,9 @@
     try {
       const result = await fetchMembership(user.id);
       subscription = result.subscription;
+      if (result.subscription?.billing_period) {
+        period = result.subscription.billing_period;
+      }
       payments = result.payments;
       licence = result.licence;
       error = '';
@@ -126,7 +139,7 @@
     notice = '';
 
     try {
-      const { checkoutUrl, subscriptionId, keyId } = await startMembership();
+      const { checkoutUrl, subscriptionId, keyId } = await startMembership(period);
 
       let outcome;
       try {
@@ -251,8 +264,8 @@
         <!-- Nothing is charged on a granted membership, so no rate is quoted at it. -->
         {#if !granted}
           <p class="price">
-            <span class="amount">{PLAN_PRICE}</span>
-            <span class="billing">{PLAN_BILLING}</span>
+            <span class="amount">{plan.price}</span>
+            <span class="billing">{plan.billing}</span>
           </p>
         {/if}
       </div>
@@ -273,7 +286,7 @@
           Your collection is still here and still yours to read and export. Adding new pieces needs a
           membership.
         {:else}
-          Innerdial is one rate with everything in it. Start whenever you like.
+          One membership with everything in it, billed monthly or yearly. Start whenever you like.
         {/if}
       </p>
 
@@ -292,6 +305,13 @@
 
       <!-- A granted membership has nothing to buy, renew or cancel here. -->
       {#if !granted}
+      <!-- Only while there is still a choice to make: a paid or failing membership keeps its period. -->
+      {#if unpaid || !live}
+        <div class="period">
+          <PlanSwitch bind:value={period} disabled={Boolean(busy)} />
+        </div>
+      {/if}
+
       <div class="actions">
         {#if unpaid}
           <Button variant="primary" onclick={begin} disabled={Boolean(busy)}>
@@ -455,6 +475,14 @@
 
   .dot.ended {
     background: #9a9a95;
+  }
+
+  .period {
+    margin-top: var(--space-lg);
+  }
+
+  .period + .actions {
+    margin-top: var(--space-md);
   }
 
   .price {
