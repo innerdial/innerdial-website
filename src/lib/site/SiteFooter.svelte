@@ -70,7 +70,10 @@
 
   <div class="shell base">
     <p>© {year} {appConfig.appName}. All rights reserved.</p>
-    <a class="base-link" href="/delete-account">Delete your account</a>
+    <nav class="base-links" aria-label="Legal">
+      <a class="base-link" href="/privacy">Privacy policy</a>
+      <a class="base-link" href="/delete-account">Delete your account</a>
+    </nav>
     <p class="made">Built for collectors, not for feeds.</p>
   </div>
 </footer>
@@ -180,6 +183,12 @@
 
   .base p {
     margin: 0;
+  }
+
+  .base-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs) var(--space-md);
   }
 
   .base-link {
