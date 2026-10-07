@@ -13,7 +13,8 @@ export const appConfig = {
  * Where supabase-js persists the session.
  *
  * It lives in this module rather than beside the client that configures it so
- * the nav can check whether a session is worth offering — see `SiteNav` — with
+ * the marketing page can check whether a session is worth offering — see
+ * `$lib/site/session-hint.js` — with
  * a `localStorage` read. Importing it from `$lib/supabase/client.js` would be
  * the obvious home and would also drag supabase-js into the bundle the
  * marketing page downloads, which is the one thing the split here exists to

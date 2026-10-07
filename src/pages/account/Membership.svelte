@@ -46,13 +46,21 @@
   let confirming = $state(false);
 
   /**
-   * The period checkout will open on. Follows the subscription once there is
-   * one, so the price quoted beside a membership is the one it is billed at.
+   * The period checkout will open on. Starts on the plan picked on the
+   * marketing page (`?plan=yearly`), when it names one of ours. Follows the
+   * subscription once there is one, so the price quoted beside a membership is
+   * the one it is billed at.
    *
    * @type {import('$lib/site/plan.js').BillingPeriod}
    */
-  let period = $state('monthly');
+  let period = $state(requestedPeriod());
   const plan = $derived(PLANS[period]);
+
+  /** @returns {import('$lib/site/plan.js').BillingPeriod} */
+  function requestedPeriod() {
+    const asked = new URLSearchParams(location.search).get('plan');
+    return asked === 'yearly' || asked === 'monthly' ? asked : 'monthly';
+  }
 
   const user = currentUser();
 

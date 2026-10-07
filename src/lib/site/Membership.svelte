@@ -1,7 +1,10 @@
 <script>
+  import { onMount } from 'svelte';
+
   import { PLAN_FEATURES, PLAN_LIST } from '$lib/site/plan.js';
   import Backdrop from '$lib/site/Backdrop.svelte';
   import { reveal } from '$lib/site/motion.js';
+  import { hasSessionHint } from '$lib/site/session-hint.js';
 
   /**
    * The offer, and the reasons to trust it.
@@ -20,7 +23,27 @@
     { id: 'locked', label: 'Price locked for life', note: 'Founding rate, held while you stay.' },
     { id: 'export', label: 'Export anytime', note: 'Spreadsheet plus every file attached.' },
     { id: 'erase', label: 'Erase for real', note: 'Account and contents, gone on request.' },
-  ];</script>
+  ];
+
+  /*
+    Each card leads to checkout on the account's membership page, carrying the
+    plan that was clicked so it opens already chosen. Signed out, it goes via
+    sign-in, which returns there afterwards. Starts on the sign-in route: a
+    signed-in visitor sent there is forwarded on, so the first render is safe
+    before storage can be read.
+  */
+  let signedIn = $state(false);
+
+  onMount(() => {
+    signedIn = hasSessionHint();
+  });
+
+  /** @param {import('$lib/site/plan.js').BillingPeriod} period */
+  function checkoutHref(period) {
+    const target = `/account/membership?plan=${period}`;
+    return signedIn ? target : `/login?next=${encodeURIComponent(target)}`;
+  }
+</script>
 
 <section class="membership" id="membership" aria-labelledby="membership-heading">
   <Backdrop tone="light" glow="right" fade="radial" cell={64} />
@@ -91,7 +114,7 @@
 
             <p class="plan-billed">{plan.note}</p>
 
-            <a class="btn {featured ? 'btn-primary' : 'btn-secondary'} plan-cta" href="#top">
+            <a class="btn {featured ? 'btn-primary' : 'btn-secondary'} plan-cta" href={checkoutHref(plan.id)}>
               Begin your collection
             </a>
           </article>

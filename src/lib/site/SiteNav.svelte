@@ -1,8 +1,9 @@
 <script>
   import { onMount } from 'svelte';
 
-  import { appConfig, AUTH_STORAGE_KEY } from '$lib/utils/config.js';
+  import { appConfig } from '$lib/utils/config.js';
   import { pageProgress } from '$lib/site/motion.js';
+  import { hasSessionHint } from '$lib/site/session-hint.js';
   import SoundToggle from '$lib/site/SoundToggle.svelte';
 
   /**
@@ -26,30 +27,15 @@
   let menuOpen = $state(false);
 
   /*
-    Whether to offer the account or the way in to it.
-
-    Read out of storage rather than from the session module, which is the
-    obvious way and the wrong one here: this bar ships in the marketing bundle,
-    and importing the session module would put supabase-js on the homepage's
-    critical path to decide between two words. A key that is present is a hint
-    and not proof — an expired token leaves one behind — so /account guards
-    itself and sends anyone stale to /login. The cost of being wrong is one
-    redirect.
-
-    In an effect rather than at module scope because the server-rendered and
-    first client render must agree, and storage is not readable in the first.
+    Whether to offer the account or the way in to it — a storage hint, not the
+    session module; see `hasSessionHint`. In an effect rather than at module
+    scope because the server-rendered and first client render must agree, and
+    storage is not readable in the first.
   */
   let signedIn = $state(false);
 
   onMount(() => {
-    try {
-      signedIn = localStorage.getItem(AUTH_STORAGE_KEY) !== null;
-    } catch {
-      // Safari in private browsing throws on access. Offering "Sign in" to
-      // someone already signed in costs one redirect; claiming a session that
-      // is not there costs the same. Default to the one that promises less.
-      signedIn = false;
-    }
+    signedIn = hasSessionHint();
   });
 
   /** @param {HTMLElement} node */
