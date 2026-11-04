@@ -119,6 +119,13 @@ export async function fetchLicenses() {
  * whichever licence is marked `is_default`, which is where a free account
  * belongs.
  *
+ * The expiry is not written here. A trigger on `profiles` stamps it from the
+ * licence's own `term` whenever `license_id` changes — none for Elite or
+ * Founder, a fresh fourteen days for the trial — so a grant can neither keep a
+ * date left over from the previous licence nor become a trial that never ends.
+ *
+ * @see innerdial/supabase/migrations/20261104120000_licence_term.sql
+ *
  * Only an admin can do this. The profiles update policy is keyed on
  * `is_admin()`, so a failure here means privileges, not a bad id.
  *
@@ -130,7 +137,7 @@ export async function updateUserLicense(userId, licenseId) {
     .from('profiles')
     .update({ license_id: licenseId })
     .eq('id', userId)
-    .select('id, license_id')
+    .select('id, license_id, license_expires_at')
     .single();
 
   if (error) throw error;
