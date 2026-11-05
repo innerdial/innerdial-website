@@ -72,6 +72,7 @@
     <p>© {year} {appConfig.appName}. All rights reserved.</p>
     <nav class="base-links" aria-label="Legal">
       <a class="base-link" href="/privacy">Privacy policy</a>
+      <a class="base-link" href="/terms">Terms of service</a>
       <a class="base-link" href="/delete-account">Delete your account</a>
     </nav>
     <p class="made">Built for collectors, not for feeds.</p>

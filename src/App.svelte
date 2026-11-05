@@ -2,6 +2,7 @@
   import { Router, Route } from 'svelte-routing';
   import Home from './pages/site/Home.svelte';
   import Privacy from './pages/site/Privacy.svelte';
+  import Terms from './pages/site/Terms.svelte';
   import LazyPage from '$lib/components/LazyPage.svelte';
 
   let { url = '' } = $props();
@@ -32,6 +33,7 @@
 <Router {url}>
   <Route path="/"><Home /></Route>
   <Route path="/privacy"><Privacy /></Route>
+  <Route path="/terms"><Terms /></Route>
 
   <!-- Outside the guard: it is the way back in when there is no session. -->
   <Route path="/login"><LazyPage load={account.login} /></Route>
