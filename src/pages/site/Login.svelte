@@ -128,6 +128,8 @@
         </Button>
       </form>
 
+      <a class="forgot" href="/forgot-password">Forgot your password?</a>
+
       <p class="aside">
         Accounts are created in the {appConfig.appName} app. Install it, sign up there, and this page
         will know you.
@@ -191,6 +193,17 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-md);
+  }
+
+  .forgot {
+    display: inline-block;
+    margin-top: var(--space-md);
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+  }
+
+  .forgot:hover {
+    color: var(--color-primary);
   }
 
   .aside {

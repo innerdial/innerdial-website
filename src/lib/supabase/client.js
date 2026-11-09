@@ -34,9 +34,11 @@ export function getSupabase() {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        // Both surfaces are reached by URL, never by an auth redirect carrying
-        // a token, so parsing one out of the address bar has nothing to find.
-        // A password-reset link would change that and this with it.
+        // Left off deliberately, now that a reset link does arrive here. The
+        // recovery fragment is read and spent by $lib/auth/recovery.js and
+        // $lib/auth/password-reset.js, on the one screen that should answer
+        // it; letting the client adopt a token on any page it happens to be
+        // constructed on would sign someone in wherever the link was opened.
         detectSessionInUrl: false,
         storageKey: AUTH_STORAGE_KEY,
       },
@@ -44,6 +46,20 @@ export function getSupabase() {
   }
 
   return client;
+}
+
+/**
+ * A refusal the person caused, phrased for them.
+ *
+ * Marked by name so `errorMessage` below can pass it through untouched instead
+ * of running it past a list of Supabase phrasings it will never match.
+ *
+ * @param {string} message
+ */
+export function inputError(message) {
+  const error = new Error(message);
+  error.name = 'AccountInputError';
+  return error;
 }
 
 /**

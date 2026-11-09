@@ -27,6 +27,8 @@
     membership: () => import('./pages/account/Membership.svelte'),
     // Public, but it signs in and calls Supabase, so it is not in the eager bundle.
     deletion: () => import('./pages/site/DeleteAccount.svelte'),
+    forgot: () => import('./pages/site/ForgotPassword.svelte'),
+    reset: () => import('./pages/site/ResetPassword.svelte'),
   };
 </script>
 
@@ -37,6 +39,10 @@
 
   <!-- Outside the guard: it is the way back in when there is no session. -->
   <Route path="/login"><LazyPage load={account.login} /></Route>
+
+  <!-- Both unguarded for the same reason: they are for someone who cannot sign in. -->
+  <Route path="/forgot-password"><LazyPage load={account.forgot} /></Route>
+  <Route path="/reset-password"><LazyPage load={account.reset} /></Route>
 
   <Route path="/account"><LazyPage load={account.home} guard="session" /></Route>
   <Route path="/account/membership"><LazyPage load={account.membership} guard="session" /></Route>

@@ -1,4 +1,4 @@
-import { getSupabase } from '$lib/supabase/client.js';
+import { getSupabase, inputError } from '$lib/supabase/client.js';
 
 /**
  * The collector's own account row, and the three things they may change about it.
@@ -100,18 +100,4 @@ export async function updatePassword(password) {
 
   const { error } = await getSupabase().auth.updateUser({ password });
   if (error) throw error;
-}
-
-/**
- * A refusal the collector caused, phrased for them.
- *
- * Marked by name so `errorMessage` can pass it through untouched instead of
- * running it past a list of Supabase phrasings it will never match.
- *
- * @param {string} message
- */
-function inputError(message) {
-  const error = new Error(message);
-  error.name = 'AccountInputError';
-  return error;
 }
