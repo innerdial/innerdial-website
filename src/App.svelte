@@ -19,6 +19,7 @@
     news: () => import('./pages/admin/News.svelte'),
     tips: () => import('./pages/admin/Tips.svelte'),
     licenses: () => import('./pages/admin/Licenses.svelte'),
+    support: () => import('./pages/admin/Support.svelte'),
   };
 
   const account = {
@@ -58,4 +59,5 @@
   <Route path="/admin/news"><LazyPage load={admin.news} guard="admin" /></Route>
   <Route path="/admin/tips"><LazyPage load={admin.tips} guard="admin" /></Route>
   <Route path="/admin/licenses"><LazyPage load={admin.licenses} guard="admin" /></Route>
+  <Route path="/admin/support"><LazyPage load={admin.support} guard="admin" /></Route>
 </Router>

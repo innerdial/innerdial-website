@@ -5,7 +5,7 @@
    *
    * Desktop-first, unlike the collector app — the console is operated at a desk.
    * Under 900px the nav collapses to a row above the content rather than
-   * disappearing behind a drawer, because it is five links.
+   * disappearing behind a drawer, because it is six links.
    */
   import { Link, useLocation } from 'svelte-routing';
   import { appConfig } from '$lib/utils/config.js';
@@ -22,6 +22,7 @@
     { href: '/admin/news', label: 'News', exact: false, icon: 'news' },
     { href: '/admin/tips', label: 'Watchmaker tips', exact: false, icon: 'tips' },
     { href: '/admin/licenses', label: 'Licenses', exact: false, icon: 'licenses' },
+    { href: '/admin/support', label: 'Support', exact: false, icon: 'support' },
   ];
 
   let signingOut = $state(false);
@@ -80,6 +81,9 @@
       <rect x="4" y="3.5" width="16" height="17" rx="2" />
       <path d="M8 8h8M8 12h8M8 16h5" />
       <path d="M7 3.5V2.5M17 3.5V2.5" />
+    {:else if name === 'support'}
+      <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 3.5V17h0A2.5 2.5 0 0 1 4 14.5Z" />
+      <path d="M8.5 9h7M8.5 12.5h4.5" />
     {:else}
       <path d="M9 18h6M10 21h4" />
       <path
